@@ -17,6 +17,7 @@ if not user_token:
 # 3. LOAD DATA & CONFIG
 # We use ttl=0 so it always grabs fresh data
 df_data = conn.read(worksheet="Data", ttl=0)
+df_data['Token'] = df_data['Token'].astype(str)
 df_config = conn.read(worksheet="Config", ttl=0)
 
 # 4. FIND THE USER'S ROW
