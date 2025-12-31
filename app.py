@@ -56,6 +56,8 @@ with st.form(key='dynamic_form'):
         # Render the correct widget based on "Type"
         if input_type == 'text':
             user_responses[col_name] = st.text_input(label, value=str(current_val) if pd.notna(current_val) else "")
+        elif input_type == 'textarea':
+             user_responses[col_name] = st.text_area(label, value=str(current_val) if pd.notna(current_val) else "")
         elif input_type == 'number':
             user_responses[col_name] = st.number_input(label, value=float(current_val) if pd.notna(current_val) else 0.0)
         elif input_type == 'checkbox':
