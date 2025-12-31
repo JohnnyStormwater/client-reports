@@ -58,6 +58,18 @@ with st.form(key='dynamic_form'):
             user_responses[col_name] = st.text_input(label, value=str(current_val) if pd.notna(current_val) else "")
         elif input_type == 'textarea':
              user_responses[col_name] = st.text_area(label, value=str(current_val) if pd.notna(current_val) else "")
+        elif input_type == 'dropdown':
+            # Get options from the 'Options' column, split by comma
+            options_str = str(row['Options']) if pd.notna(row['Options']) else ""
+            options = [opt.strip() for opt in options_str.split(',')]
+            
+            # Find the index of the currently saved value (so it stays selected)
+            try:
+                current_index = options.index(str(current_val))
+            except ValueError:
+                current_index = 0
+            
+            user_responses[col_name] = st.selectbox(label, options, index=current_index)
         elif input_type == 'number':
             user_responses[col_name] = st.number_input(label, value=float(current_val) if pd.notna(current_val) else 0.0)
         elif input_type == 'checkbox':
