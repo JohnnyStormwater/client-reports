@@ -53,10 +53,10 @@ with st.form(key='dynamic_form'):
         # Get existing value from Data sheet
         current_val = df_data.at[user_row_index, col_name]
 
-        # Get existing value from Data sheet
-        current_val = df_data.at[user_row_index, col_name]
+        # --- 1. DISPLAY THE QUESTION LABEL FIRST ---
+        st.markdown(f"**{label}**")
 
-        # --- NEW CODE: CHECK FOR PREVIOUS YEAR'S DATA ---
+        # --- 2. CHECK FOR PREVIOUS YEAR'S DATA ---
         if 'Previous_Col' in row and pd.notna(row['Previous_Col']):
             prev_col_name = str(row['Previous_Col']).strip()
             
@@ -67,17 +67,12 @@ with st.form(key='dynamic_form'):
                 # If there is actually data there, display it as read-only text
                 if pd.notna(prev_val) and str(prev_val).strip() != "":
                     st.caption(f"🗓️ **Last year's response:** {prev_val}")
-        # ------------------------------------------------
 
-        # Render the correct widget based on "Type"
+        # --- 3. RENDER THE WIDGET (Label is empty so it sits cleanly below the text) ---
         if input_type == 'text':
-             user_responses[col_name] = st.text_input(label, value=str(current_val) if pd.notna(current_val) else "")
-
-        # Render the correct widget based on "Type"
-        if input_type == 'text':
-            user_responses[col_name] = st.text_input(label, value=str(current_val) if pd.notna(current_val) else "")
+             user_responses[col_name] = st.text_input(label="", value=str(current_val) if pd.notna(current_val) else "", key=col_name)
         elif input_type == 'textarea':
-             user_responses[col_name] = st.text_area(label, value=str(current_val) if pd.notna(current_val) else "")
+             user_responses[col_name] = st.text_area(label="", value=str(current_val) if pd.notna(current_val) else "", key=col_name)
         elif input_type == 'dropdown':
             # Get options from the 'Options' column, split by comma
             options_str = str(row['Options']) if pd.notna(row['Options']) else ""
@@ -89,15 +84,19 @@ with st.form(key='dynamic_form'):
             except ValueError:
                 current_index = 0
             
-            user_responses[col_name] = st.selectbox(label, options, index=current_index)
+            user_responses[col_name] = st.selectbox(label="", options=options, index=current_index, key=col_name)
         elif input_type == 'number':
-            user_responses[col_name] = st.number_input(label, value=float(current_val) if pd.notna(current_val) else 0.0)
+            user_responses[col_name] = st.number_input(label="", value=float(current_val) if pd.notna(current_val) else 0.0, key=col_name)
         elif input_type == 'checkbox':
             # Checkbox needs boolean
             is_checked = True if str(current_val).lower() == 'true' else False
-            user_responses[col_name] = st.checkbox(label, value=is_checked)
+            # Checkboxes look a little weird if they are completely blank, so we just give it a tiny prompt
+            user_responses[col_name] = st.checkbox(label="Check if Yes", value=is_checked, key=col_name)
         elif input_type == 'date':
-             user_responses[col_name] = st.text_input(label, value=str(current_val) if pd.notna(current_val) else "")
+             user_responses[col_name] = st.text_input(label="", value=str(current_val) if pd.notna(current_val) else "", key=col_name)
+        
+        # Add a little visual space between questions
+        st.write("")
     
     # 7. SAVE BUTTON
     submitted = st.form_submit_button("💾 Save Progress")
