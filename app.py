@@ -53,6 +53,26 @@ with st.form(key='dynamic_form'):
         # Get existing value from Data sheet
         current_val = df_data.at[user_row_index, col_name]
 
+        # Get existing value from Data sheet
+        current_val = df_data.at[user_row_index, col_name]
+
+        # --- NEW CODE: CHECK FOR PREVIOUS YEAR'S DATA ---
+        if 'Previous_Col' in row and pd.notna(row['Previous_Col']):
+            prev_col_name = str(row['Previous_Col']).strip()
+            
+            # Make sure you actually created this column in the Data sheet!
+            if prev_col_name in df_data.columns:
+                prev_val = df_data.at[user_row_index, prev_col_name]
+                
+                # If there is actually data there, display it as read-only text
+                if pd.notna(prev_val) and str(prev_val).strip() != "":
+                    st.caption(f"🗓️ **Last year's response:** {prev_val}")
+        # ------------------------------------------------
+
+        # Render the correct widget based on "Type"
+        if input_type == 'text':
+             user_responses[col_name] = st.text_input(label, value=str(current_val) if pd.notna(current_val) else "")
+
         # Render the correct widget based on "Type"
         if input_type == 'text':
             user_responses[col_name] = st.text_input(label, value=str(current_val) if pd.notna(current_val) else "")
