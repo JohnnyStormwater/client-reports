@@ -68,11 +68,13 @@ with st.form(key='dynamic_form'):
                 if pd.notna(prev_val) and str(prev_val).strip() != "":
                     st.caption(f"🗓️ **Last year's response:** {prev_val}")
 
-        # --- 3. RENDER THE WIDGET (Label is empty so it sits cleanly below the text) ---
+        # --- 3. RENDER THE WIDGET (Space collapsed so it sits cleanly below the text) ---
         if input_type == 'text':
-             user_responses[col_name] = st.text_input(label="", value=str(current_val) if pd.notna(current_val) else "", key=col_name)
+             user_responses[col_name] = st.text_input(label=label, label_visibility="collapsed", value=str(current_val) if pd.notna(current_val) else "", key=col_name)
+        
         elif input_type == 'textarea':
-             user_responses[col_name] = st.text_area(label="", value=str(current_val) if pd.notna(current_val) else "", key=col_name)
+             user_responses[col_name] = st.text_area(label=label, label_visibility="collapsed", value=str(current_val) if pd.notna(current_val) else "", key=col_name)
+        
         elif input_type == 'dropdown':
             # Get options from the 'Options' column, split by comma
             options_str = str(row['Options']) if pd.notna(row['Options']) else ""
@@ -84,16 +86,19 @@ with st.form(key='dynamic_form'):
             except ValueError:
                 current_index = 0
             
-            user_responses[col_name] = st.selectbox(label="", options=options, index=current_index, key=col_name)
+            user_responses[col_name] = st.selectbox(label=label, label_visibility="collapsed", options=options, index=current_index, key=col_name)
+        
         elif input_type == 'number':
-            user_responses[col_name] = st.number_input(label="", value=float(current_val) if pd.notna(current_val) else 0.0, key=col_name)
+            user_responses[col_name] = st.number_input(label=label, label_visibility="collapsed", value=float(current_val) if pd.notna(current_val) else 0.0, key=col_name)
+        
         elif input_type == 'checkbox':
             # Checkbox needs boolean
             is_checked = True if str(current_val).lower() == 'true' else False
-            # Checkboxes look a little weird if they are completely blank, so we just give it a tiny prompt
+            # Checkboxes render their labels inline, so we don't collapse this one!
             user_responses[col_name] = st.checkbox(label="Check if Yes", value=is_checked, key=col_name)
+        
         elif input_type == 'date':
-             user_responses[col_name] = st.text_input(label="", value=str(current_val) if pd.notna(current_val) else "", key=col_name)
+             user_responses[col_name] = st.text_input(label=label, label_visibility="collapsed", value=str(current_val) if pd.notna(current_val) else "", key=col_name)
         
         # Add a little visual space between questions
         st.write("")
