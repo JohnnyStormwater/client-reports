@@ -39,9 +39,21 @@ selected_tab = st.sidebar.radio("Navigate", tabs)
 # 6. DYNAMIC FORM GENERATOR
 st.header(f"{selected_tab} Reporting")
 
+# Filter config for just this tab
+tab_questions = df_config[df_config['Tab'] == selected_tab]
+
+# --- NEW FEATURE: DYNAMIC SECTION DESCRIPTION ---
+# We check if the column exists so the app doesn't crash if you haven't updated the sheet yet
+if 'Tab Description' in df_config.columns:
+    # Grab the description, dropping any empty cells
+    descriptions = tab_questions['Tab Description'].dropna().unique()
+    
+    # If a description exists and isn't blank, display it!
+    if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
+        st.markdown(str(descriptions[0]))
+        st.write("") # Adds a tiny bit of breathing room before the form starts
+
 with st.form(key='dynamic_form'):
-    # Filter config for just this tab
-    tab_questions = df_config[df_config['Tab'] == selected_tab]
     
     user_responses = {}
 
