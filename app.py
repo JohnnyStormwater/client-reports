@@ -79,10 +79,13 @@ with st.form(key='dynamic_form'):
         label = row['Label']
         input_type = row['Type']
         
-        # --- NEW: SUBHEADER LOGIC ---
+        # --- NEW: SUBHEADER LOGIC WITH UNDERLINE ---
         if input_type == 'subheader':
             st.markdown("---") # Draws a nice horizontal divider line
-            st.subheader(label) # Prints the label as a large subheader
+            
+            # Use HTML/Markdown to force an underline on the subheader (### makes it Header 3 size)
+            st.markdown(f"### <u>{label}</u>", unsafe_allow_html=True)
+            
             st.write("") # Adds a little spacing
             continue # Skips the rest of the loop and moves to the next question!
             
