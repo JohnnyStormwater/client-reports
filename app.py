@@ -79,17 +79,14 @@ with st.form(key='dynamic_form'):
         label = row['Label']
         input_type = row['Type']
         
-        # --- NEW: SUBHEADER LOGIC WITH UNDERLINE ---
+        # --- SUBHEADER LOGIC WITH UNDERLINE ---
         if input_type == 'subheader':
-            st.markdown("---") # Draws a nice horizontal divider line
-            
-            # Use HTML/Markdown to force an underline on the subheader (### makes it Header 3 size)
+            st.markdown("---") 
             st.markdown(f"### <u>{label}</u>", unsafe_allow_html=True)
+            st.write("") 
+            continue 
             
-            st.write("") # Adds a little spacing
-            continue # Skips the rest of the loop and moves to the next question!
-            
-        # SAFETY CHECK: Only try to get data if the column actually exists in the Data sheet
+        # SAFETY CHECK
         if col_name in df_data.columns:
             raw_current_val = df_data.at[user_row_index, col_name]
         else:
@@ -108,7 +105,8 @@ with st.form(key='dynamic_form'):
                 raw_prev_val = df_data.at[user_row_index, prev_col_name]
                 clean_prev_val = format_cell_value(raw_prev_val)
                 
-                if clean_prev_val != "":
+                # NEW: Only show the "Last year's response" caption if it is NOT a readonly field
+                if clean_prev_val != "" and input_type != 'readonly':
                     st.caption(f"🗓️ **Last year's response:** {clean_prev_val}")
 
         # --- 3. RENDER THE WIDGET ---
@@ -118,8 +116,22 @@ with st.form(key='dynamic_form'):
         elif input_type == 'textarea':
              user_responses[col_name] = st.text_area(label=label, label_visibility="collapsed", value=clean_current_val, key=col_name)
              
+        # --- NEW: UPDATED READ-ONLY LOGIC ---
         elif input_type == 'readonly':
-             st.text_area(label=label, label_visibility="collapsed", value=clean_current_val, height=300, disabled=True, key=col_name)
+             display_text = clean_current_val
+             
+             # Smart Fallback: If current year is blank, pull the long list from the previous year column
+             if display_text == "" and 'Previous_Col' in row and pd.notna(row['Previous_Col']):
+                 prev_col_name = str(row['Previous_Col']).strip()
+                 if prev_col_name in df_data.columns:
+                     display_text = format_cell_value(df_data.at[user_row_index, prev_col_name])
+             
+             # Replace standard newlines with Markdown breaks so your spreadsheet formatting stays perfect
+             display_text = display_text.replace('\n', '  \n')
+             
+             # Print as standard text (defaults to white in dark mode), no input box!
+             if display_text != "":
+                 st.markdown(display_text)
         
         elif input_type == 'dropdown':
             options_str = str(row['Options']) if pd.notna(row['Options']) else ""
