@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from streamlit_gsheets import GSheetsConnection
+import re  # NEW: We need this to smartly find and format text!
 
 # --- HELPER FUNCTION FOR FORMATTING ---
 def format_cell_value(val):
@@ -105,7 +106,7 @@ with st.form(key='dynamic_form'):
                 raw_prev_val = df_data.at[user_row_index, prev_col_name]
                 clean_prev_val = format_cell_value(raw_prev_val)
                 
-                # NEW: Only show the "Last year's response" caption if it is NOT a readonly field
+                # Only show the "Last year's response" caption if it is NOT a readonly field
                 if clean_prev_val != "" and input_type != 'readonly':
                     st.caption(f"🗓️ **Last year's response:** {clean_prev_val}")
 
@@ -116,22 +117,29 @@ with st.form(key='dynamic_form'):
         elif input_type == 'textarea':
              user_responses[col_name] = st.text_area(label=label, label_visibility="collapsed", value=clean_current_val, key=col_name)
              
-        # --- NEW: UPDATED READ-ONLY LOGIC ---
+        # --- UPDATED READ-ONLY LOGIC WITH AUTO-FORMATTING ---
         elif input_type == 'readonly':
              display_text = clean_current_val
              
-             # Smart Fallback: If current year is blank, pull the long list from the previous year column
+             # Smart Fallback
              if display_text == "" and 'Previous_Col' in row and pd.notna(row['Previous_Col']):
                  prev_col_name = str(row['Previous_Col']).strip()
                  if prev_col_name in df_data.columns:
                      display_text = format_cell_value(df_data.at[user_row_index, prev_col_name])
              
+             # --- DYNAMIC BOLDING & UNDERLINING ---
+             # This automatically finds "[Any Number] BMPs completed:" and wraps it in <u>** **</u>
+             display_text = re.sub(r'(?i)(\d+\s*BMPs completed:)', r'<u>**\1**</u>', display_text)
+             
+             # This automatically finds "BMPs in progress:" and wraps it in <u>** **</u>
+             display_text = re.sub(r'(?i)(BMPs in progress:)', r'<u>**\1**</u>', display_text)
+             
              # Replace standard newlines with Markdown breaks so your spreadsheet formatting stays perfect
              display_text = display_text.replace('\n', '  \n')
              
-             # Print as standard text (defaults to white in dark mode), no input box!
+             # Print as standard text. unsafe_allow_html=True tells Streamlit to actually render the <u> tag!
              if display_text != "":
-                 st.markdown(display_text)
+                 st.markdown(display_text, unsafe_allow_html=True)
         
         elif input_type == 'dropdown':
             options_str = str(row['Options']) if pd.notna(row['Options']) else ""
