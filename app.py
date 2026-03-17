@@ -13,24 +13,18 @@ def format_cell_value(val):
     if pd.isna(val):
         return ""
     
-    # Convert to string and clean whitespace
     str_val = str(val).strip()
     
-    # If pandas converted an empty cell to 'nan'
     if str_val.lower() == 'nan':
         return ""
         
     try:
-        # Check if it's a number
         float_val = float(str_val)
-        # If it's a perfect whole number (e.g., 99.0), drop the .0
         if float_val.is_integer():
             return str(int(float_val))
-        # If it has a real decimal (e.g., 99.6), leave it
         else:
             return str(float_val)
     except ValueError:
-        # If it's plain text (like "None", "N/A", or "Yes"), just return the text!
         return str_val
 
 # 1. SETUP & CONNECTION
@@ -46,7 +40,6 @@ if not user_token:
     st.stop()
 
 # 3. LOAD DATA & CONFIG
-# keep_default_na=False tells pandas to stop turning "N/A" into blank values!
 df_data = conn.read(worksheet="Data", ttl=0, keep_default_na=False)
 df_data['Token'] = df_data['Token'].astype(str)
 df_config = conn.read(worksheet="Config", ttl=0)
@@ -57,20 +50,18 @@ if user_row_index.empty:
     st.error("⛔ Invalid Token. Please check your link.")
     st.stop()
 
-user_row_index = user_row_index[0] # Get the actual integer index
+user_row_index = user_row_index[0] 
 current_client_name = df_data.at[user_row_index, 'Client']
 
 # 5. SIDEBAR NAVIGATION
 st.sidebar.title(f"🏙️ {current_client_name}")
 st.sidebar.markdown("---")
-# Get unique tabs from your Config sheet
 tabs = df_config['Tab'].unique()
 selected_tab = st.sidebar.radio("Navigate", tabs)
 
 # 6. DYNAMIC FORM GENERATOR
 st.header(f"{selected_tab} Reporting")
 
-# Filter config for just this tab
 tab_questions = df_config[df_config['Tab'] == selected_tab]
 
 # --- DYNAMIC SECTION DESCRIPTION ---
@@ -88,8 +79,19 @@ with st.form(key='dynamic_form'):
         label = row['Label']
         input_type = row['Type']
         
-        # Get existing value and run it through our new formatting function
-        raw_current_val = df_data.at[user_row_index, col_name]
+        # --- NEW: SUBHEADER LOGIC ---
+        if input_type == 'subheader':
+            st.markdown("---") # Draws a nice horizontal divider line
+            st.subheader(label) # Prints the label as a large subheader
+            st.write("") # Adds a little spacing
+            continue # Skips the rest of the loop and moves to the next question!
+            
+        # SAFETY CHECK: Only try to get data if the column actually exists in the Data sheet
+        if col_name in df_data.columns:
+            raw_current_val = df_data.at[user_row_index, col_name]
+        else:
+            raw_current_val = ""
+            
         clean_current_val = format_cell_value(raw_current_val)
 
         # --- 1. DISPLAY THE QUESTION LABEL FIRST ---
@@ -103,7 +105,6 @@ with st.form(key='dynamic_form'):
                 raw_prev_val = df_data.at[user_row_index, prev_col_name]
                 clean_prev_val = format_cell_value(raw_prev_val)
                 
-                # If there is actually data there (including "None" or "0"), display it
                 if clean_prev_val != "":
                     st.caption(f"🗓️ **Last year's response:** {clean_prev_val}")
 
@@ -113,6 +114,9 @@ with st.form(key='dynamic_form'):
         
         elif input_type == 'textarea':
              user_responses[col_name] = st.text_area(label=label, label_visibility="collapsed", value=clean_current_val, key=col_name)
+             
+        elif input_type == 'readonly':
+             st.text_area(label=label, label_visibility="collapsed", value=clean_current_val, height=300, disabled=True, key=col_name)
         
         elif input_type == 'dropdown':
             options_str = str(row['Options']) if pd.notna(row['Options']) else ""
@@ -126,7 +130,6 @@ with st.form(key='dynamic_form'):
             user_responses[col_name] = st.selectbox(label=label, label_visibility="collapsed", options=options, index=current_index, key=col_name)
         
         elif input_type == 'number':
-            # Number inputs require actual numbers. If it's text like "None", fallback to 0.
             try:
                 num_val = float(clean_current_val)
                 if num_val.is_integer():
