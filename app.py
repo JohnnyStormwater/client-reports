@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from streamlit_gsheets import GSheetsConnection
-import re  # NEW: We need this to smartly find and format text!
+import re
 
 # --- HELPER FUNCTION FOR FORMATTING ---
 def format_cell_value(val):
@@ -41,8 +41,11 @@ if not user_token:
     st.stop()
 
 # 3. LOAD DATA & CONFIG
-df_data = conn.read(worksheet="Data", ttl=0, keep_default_na=False)
+# --- NEW: skiprows=2 tells the app to ignore your top 2 aesthetic rows! ---
+df_data = conn.read(worksheet="Data", ttl=0, keep_default_na=False, skiprows=2)
 df_data['Token'] = df_data['Token'].astype(str)
+
+# We assume your Config sheet doesn't have the 2 extra rows. If it does, add skiprows=2 here too!
 df_config = conn.read(worksheet="Config", ttl=0)
 
 # 4. FIND THE USER'S ROW
@@ -117,7 +120,7 @@ with st.form(key='dynamic_form'):
         elif input_type == 'textarea':
              user_responses[col_name] = st.text_area(label=label, label_visibility="collapsed", value=clean_current_val, key=col_name)
              
-        # --- UPDATED READ-ONLY LOGIC WITH AUTO-FORMATTING ---
+        # --- READ-ONLY LOGIC WITH AUTO-FORMATTING ---
         elif input_type == 'readonly':
              display_text = clean_current_val
              
@@ -127,17 +130,14 @@ with st.form(key='dynamic_form'):
                  if prev_col_name in df_data.columns:
                      display_text = format_cell_value(df_data.at[user_row_index, prev_col_name])
              
-             # --- DYNAMIC BOLDING & UNDERLINING ---
-             # This automatically finds "[Any Number] BMPs completed:" and wraps it in <u>** **</u>
+             # Dynamic bolding & underlining
              display_text = re.sub(r'(?i)(\d+\s*BMPs completed:)', r'<u>**\1**</u>', display_text)
-             
-             # This automatically finds "BMPs in progress:" and wraps it in <u>** **</u>
              display_text = re.sub(r'(?i)(BMPs in progress:)', r'<u>**\1**</u>', display_text)
              
-             # Replace standard newlines with Markdown breaks so your spreadsheet formatting stays perfect
+             # Replace standard newlines with Markdown breaks
              display_text = display_text.replace('\n', '  \n')
              
-             # Print as standard text. unsafe_allow_html=True tells Streamlit to actually render the <u> tag!
+             # Print as standard text
              if display_text != "":
                  st.markdown(display_text, unsafe_allow_html=True)
         
