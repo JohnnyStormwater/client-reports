@@ -40,7 +40,7 @@ if not user_token:
     st.error("⛔ Access Denied. No token provided.")
     st.stop()
 
-# --- NEW: THE ROUTER ---
+# --- THE ROUTER ---
 # 3. READ DIRECTORY TO FIND THE USER'S COUNTY
 df_directory = conn.read(worksheet="Directory", ttl=0)
 df_directory['Token'] = df_directory['Token'].astype(str)
@@ -73,7 +73,6 @@ user_row_index = user_row_index[0]
 
 # 6. SIDEBAR NAVIGATION
 st.sidebar.title(f"🏙️ {current_client_name}")
-st.sidebar.caption(f"📍 {user_county} County Region") # Visual confirmation of the route!
 st.sidebar.markdown("---")
 tabs = df_config['Tab'].unique()
 selected_tab = st.sidebar.radio("Navigate", tabs)
@@ -150,49 +149,4 @@ with st.form(key='dynamic_form'):
              display_text = re.sub(r'(?i)(BMPs in progress:)', r'<u>**\1**</u>', display_text)
              
              # Replace standard newlines with Markdown breaks
-             display_text = display_text.replace('\n', '  \n')
-             
-             # Print as standard text
-             if display_text != "":
-                 st.markdown(display_text, unsafe_allow_html=True)
-        
-        elif input_type == 'dropdown':
-            options_str = str(row['Options']) if pd.notna(row['Options']) else ""
-            options = [opt.strip() for opt in options_str.split(',')]
-            
-            try:
-                current_index = options.index(clean_current_val)
-            except ValueError:
-                current_index = 0
-            
-            user_responses[col_name] = st.selectbox(label=label, label_visibility="collapsed", options=options, index=current_index, key=col_name)
-        
-        elif input_type == 'number':
-            try:
-                num_val = float(clean_current_val)
-                if num_val.is_integer():
-                    num_val = int(num_val)
-            except ValueError:
-                num_val = 0
-                
-            user_responses[col_name] = st.number_input(label=label, label_visibility="collapsed", value=num_val, key=col_name)
-        
-        elif input_type == 'checkbox':
-            is_checked = True if str(clean_current_val).lower() == 'true' else False
-            user_responses[col_name] = st.checkbox(label="Check if Yes", value=is_checked, key=col_name)
-        
-        elif input_type == 'date':
-             user_responses[col_name] = st.text_input(label=label, label_visibility="collapsed", value=clean_current_val, key=col_name)
-        
-        st.write("")
-    
-    # 8. SAVE BUTTON
-    submitted = st.form_submit_button("💾 Save Progress")
-    if submitted:
-        for col, new_val in user_responses.items():
-            df_data.at[user_row_index, col] = new_val
-        
-        # --- NEW: Save back to the correct County's Data sheet! ---
-        conn.update(worksheet=f"{user_county}_Data", data=df_data)
-        st.success(f"✅ Saved data for {selected_tab}!")
-        st.rerun()
+             display
