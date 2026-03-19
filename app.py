@@ -40,30 +40,45 @@ if not user_token:
     st.error("⛔ Access Denied. No token provided.")
     st.stop()
 
-# 3. LOAD DATA & CONFIG
-# --- NEW: skiprows=2 tells the app to ignore your top 2 aesthetic rows! ---
-df_data = conn.read(worksheet="Data", ttl=0, keep_default_na=False, skiprows=2)
+# --- NEW: THE ROUTER ---
+# 3. READ DIRECTORY TO FIND THE USER'S COUNTY
+df_directory = conn.read(worksheet="Directory", ttl=0)
+df_directory['Token'] = df_directory['Token'].astype(str)
+
+user_info = df_directory[df_directory['Token'] == user_token]
+if user_info.empty:
+    st.error("⛔ Invalid Token. Please check your link or the Directory tab.")
+    st.stop()
+
+# Extract the user's Client Name and County
+current_client_name = user_info['Client'].iloc[0]
+user_county = user_info['County'].iloc[0] # This will pull "LA", "OC", etc.
+
+# 4. LOAD THE CORRECT DATA & CONFIG SHEETS DYNAMICALLY
+# Uses f-strings to load "LA_Data" and "LA_Config" (or OC) based on the Directory
+# (skiprows=2 is still here so you can keep your aesthetic headers in the Data sheet!)
+df_data = conn.read(worksheet=f"{user_county}_Data", ttl=0, keep_default_na=False, skiprows=2)
 df_data['Token'] = df_data['Token'].astype(str)
 
-# We assume your Config sheet doesn't have the 2 extra rows. If it does, add skiprows=2 here too!
-df_config = conn.read(worksheet="Config", ttl=0)
+# Assuming the Config sheet DOES NOT have the 2 extra aesthetic rows at the top. 
+df_config = conn.read(worksheet=f"{user_county}_Config", ttl=0)
 
-# 4. FIND THE USER'S ROW
+# 5. FIND THE USER'S ROW IN THEIR SPECIFIC DATA SHEET
 user_row_index = df_data[df_data['Token'] == user_token].index
 if user_row_index.empty:
-    st.error("⛔ Invalid Token. Please check your link.")
+    st.error(f"⛔ Token found in Directory, but missing from {user_county}_Data sheet!")
     st.stop()
 
 user_row_index = user_row_index[0] 
-current_client_name = df_data.at[user_row_index, 'Client']
 
-# 5. SIDEBAR NAVIGATION
+# 6. SIDEBAR NAVIGATION
 st.sidebar.title(f"🏙️ {current_client_name}")
+st.sidebar.caption(f"📍 {user_county} County Region") # Visual confirmation of the route!
 st.sidebar.markdown("---")
 tabs = df_config['Tab'].unique()
 selected_tab = st.sidebar.radio("Navigate", tabs)
 
-# 6. DYNAMIC FORM GENERATOR
+# 7. DYNAMIC FORM GENERATOR
 st.header(f"{selected_tab} Reporting")
 
 tab_questions = df_config[df_config['Tab'] == selected_tab]
@@ -171,12 +186,13 @@ with st.form(key='dynamic_form'):
         
         st.write("")
     
-    # 7. SAVE BUTTON
+    # 8. SAVE BUTTON
     submitted = st.form_submit_button("💾 Save Progress")
     if submitted:
         for col, new_val in user_responses.items():
             df_data.at[user_row_index, col] = new_val
         
-        conn.update(worksheet="Data", data=df_data)
+        # --- NEW: Save back to the correct County's Data sheet! ---
+        conn.update(worksheet=f"{user_county}_Data", data=df_data)
         st.success(f"✅ Saved data for {selected_tab}!")
         st.rerun()
