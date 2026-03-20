@@ -110,7 +110,17 @@ with st.form(key='dynamic_form'):
         clean_current_val = format_cell_value(raw_current_val)
 
         # --- 1. DISPLAY THE QUESTION LABEL FIRST ---
-        st.markdown(f"**{label}**")
+        # NEW: Smart bullet point formatter
+        display_label = str(label)
+        if "•" in display_label:
+            parts = display_label.split("•")
+            formatted_label = f"**{parts[0].strip()}**\n" # The main question text
+            for part in parts[1:]:
+                if part.strip(): # Make sure it's not a blank space
+                    formatted_label += f"* **{part.strip()}**\n" # Markdown bullet point
+            st.markdown(formatted_label)
+        else:
+            st.markdown(f"**{display_label}**")
 
         # --- 2. CHECK FOR PREVIOUS YEAR'S DATA ---
         if 'Previous_Col' in row and pd.notna(row['Previous_Col']):
@@ -182,7 +192,7 @@ with st.form(key='dynamic_form'):
         
         st.write("")
     
-    # 8. SAVE BUTTON (Now correctly indented INSIDE the form block!)
+    # 8. SAVE BUTTON
     submitted = st.form_submit_button("💾 Save Progress")
     if submitted:
         for col, new_val in user_responses.items():
