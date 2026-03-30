@@ -52,10 +52,9 @@ if user_info.empty:
 
 # Extract the user's Client Name and County
 current_client_name = user_info['Client'].iloc[0]
-user_county = user_info['County'].iloc[0] # This will pull "LA", "OC", etc.
+user_county = user_info['County'].iloc[0] 
 
 # 4. LOAD THE CORRECT DATA & CONFIG SHEETS DYNAMICALLY
-# --- UPDATED: skiprows=3 to account for your new header row! ---
 df_data = conn.read(worksheet=f"{user_county}_Data", ttl=0, keep_default_na=False, skiprows=3)
 df_data['Token'] = df_data['Token'].astype(str)
 
@@ -111,19 +110,20 @@ with st.form(key='dynamic_form'):
         clean_current_val = format_cell_value(raw_current_val)
 
         # --- 1. DISPLAY THE QUESTION LABEL FIRST ---
-        # Smart bullet point formatter
         display_label = str(label)
         if "•" in display_label:
             parts = display_label.split("•")
-            formatted_label = f"**{parts[0].strip()}**\n" # The main question text
+            formatted_label = f"**{parts[0].strip()}**\n" 
             for part in parts[1:]:
-                if part.strip(): # Make sure it's not a blank space
-                    formatted_label += f"* **{part.strip()}**\n" # Markdown bullet point
+                if part.strip(): 
+                    formatted_label += f"* **{part.strip()}**\n" 
             st.markdown(formatted_label)
         else:
             st.markdown(f"**{display_label}**")
 
-        # --- 2. CHECK FOR PREVIOUS YEAR'S DATA ---
+        # --- 2. CONTEXTUAL DATA (LAST YEAR & JLHA) ---
+        
+        # A. Check for Previous Year Data
         if 'Previous_Col' in row and pd.notna(row['Previous_Col']):
             prev_col_name = str(row['Previous_Col']).strip()
             
@@ -131,9 +131,24 @@ with st.form(key='dynamic_form'):
                 raw_prev_val = df_data.at[user_row_index, prev_col_name]
                 clean_prev_val = format_cell_value(raw_prev_val)
                 
-                # Only show the "Last year's response" caption if it is NOT a readonly field
                 if clean_prev_val != "" and input_type != 'readonly':
-                    st.caption(f"🗓️ **Last year's response:** {clean_prev_val}")
+                    # CUSTOM FINANCIAL SECTION LOGIC
+                    if selected_tab == "💲 Expenditures and Budgets":
+                        st.caption(f"💰 **Last Year's Total:** {clean_prev_val}")
+                    else:
+                        st.caption(f"🗓️ **Last year's response:** {clean_prev_val}")
+
+        # B. NEW: Check for JLHA Data
+        if 'JLHA_Col' in df_config.columns and 'JLHA_Col' in row and pd.notna(row['JLHA_Col']):
+            jlha_col_name = str(row['JLHA_Col']).strip()
+            
+            if jlha_col_name in df_data.columns:
+                raw_jlha_val = df_data.at[user_row_index, jlha_col_name]
+                clean_jlha_val = format_cell_value(raw_jlha_val)
+                
+                # If there is data, display it right below the previous year response!
+                if clean_jlha_val != "" and input_type != 'readonly':
+                    st.caption(f"🐟 **JLHA Expenses:** {clean_jlha_val}")
 
         # --- 3. RENDER THE WIDGET ---
         if input_type == 'text':
@@ -142,24 +157,19 @@ with st.form(key='dynamic_form'):
         elif input_type == 'textarea':
              user_responses[col_name] = st.text_area(label=label, label_visibility="collapsed", value=clean_current_val, key=col_name)
              
-        # --- READ-ONLY LOGIC WITH AUTO-FORMATTING ---
         elif input_type == 'readonly':
              display_text = clean_current_val
              
-             # Smart Fallback
              if display_text == "" and 'Previous_Col' in row and pd.notna(row['Previous_Col']):
                  prev_col_name = str(row['Previous_Col']).strip()
                  if prev_col_name in df_data.columns:
                      display_text = format_cell_value(df_data.at[user_row_index, prev_col_name])
              
-             # Dynamic bolding & underlining
              display_text = re.sub(r'(?i)(\d+\s*BMPs completed:)', r'<u>**\1**</u>', display_text)
              display_text = re.sub(r'(?i)(BMPs in progress:)', r'<u>**\1**</u>', display_text)
              
-             # Replace standard newlines with Markdown breaks
              display_text = display_text.replace('\n', '  \n')
              
-             # Print as standard text
              if display_text != "":
                  st.markdown(display_text, unsafe_allow_html=True)
         
@@ -199,7 +209,6 @@ with st.form(key='dynamic_form'):
         for col, new_val in user_responses.items():
             df_data.at[user_row_index, col] = new_val
         
-        # --- Save back to the correct County's Data sheet! ---
         conn.update(worksheet=f"{user_county}_Data", data=df_data)
         st.success(f"✅ Saved data for {selected_tab}!")
         st.rerun()
