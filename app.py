@@ -97,7 +97,6 @@ tabs = df_config['Tab'].unique()
 selected_tab = st.sidebar.radio("Navigate", tabs)
 
 # 7. DYNAMIC FORM GENERATOR
-# Removed the hardcoded "Reporting" text here!
 st.header(selected_tab)
 
 tab_questions = df_config[df_config['Tab'] == selected_tab]
@@ -142,7 +141,7 @@ with st.form(key='dynamic_form'):
         clean_current_val = format_cell_value(raw_current_val)
 
         # --- 1. DISPLAY THE QUESTION LABEL FIRST ---
-        # Strip out any accidental spaces or asterisks from the spreadsheet data
+        # Strip out any accidental asterisks written in the spreadsheet data
         display_label = str(label).replace("**", "").strip()
         
         if "•" in display_label:
@@ -153,7 +152,15 @@ with st.form(key='dynamic_form'):
                     formatted_label += f"* **{part.strip()}**\n" 
             st.markdown(formatted_label)
         else:
-            st.markdown(f"**{display_label}**")
+            # NEW: Smart Multi-Line Bolding Logic
+            # Splits the text by newlines and bolds each paragraph individually
+            formatted_parts = []
+            for line in display_label.split('\n'):
+                if line.strip(): # Ignore completely blank lines
+                    formatted_parts.append(f"**{line.strip()}**")
+            
+            # Joins them back together with proper Markdown paragraph breaks
+            st.markdown("  \n\n".join(formatted_parts))
 
         # --- 2. CONTEXTUAL DATA (LAST YEAR & JLHA) ---
         if 'Previous_Col' in row and pd.notna(row['Previous_Col']):
@@ -183,10 +190,10 @@ with st.form(key='dynamic_form'):
 
         # --- 3. RENDER THE WIDGET ---
         if input_type == 'text':
-             user_responses[col_name] = st.text_input(label=label, label_visibility="collapsed", value=clean_current_val, key=col_name)
+             user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, key=col_name)
         
         elif input_type == 'textarea':
-             user_responses[col_name] = st.text_area(label=label, label_visibility="collapsed", value=clean_current_val, key=col_name)
+             user_responses[col_name] = st.text_area(label="hidden_label", label_visibility="collapsed", value=clean_current_val, key=col_name)
              
         elif input_type == 'readonly':
              display_text = clean_current_val
@@ -212,7 +219,7 @@ with st.form(key='dynamic_form'):
             except ValueError:
                 current_index = 0
             
-            user_responses[col_name] = st.selectbox(label=label, label_visibility="collapsed", options=options, index=current_index, key=col_name)
+            user_responses[col_name] = st.selectbox(label="hidden_label", label_visibility="collapsed", options=options, index=current_index, key=col_name)
         
         elif input_type == 'number':
             try:
@@ -222,14 +229,14 @@ with st.form(key='dynamic_form'):
             except ValueError:
                 num_val = 0
                 
-            user_responses[col_name] = st.number_input(label=label, label_visibility="collapsed", value=num_val, key=col_name)
+            user_responses[col_name] = st.number_input(label="hidden_label", label_visibility="collapsed", value=num_val, key=col_name)
         
         elif input_type == 'checkbox':
             is_checked = True if str(clean_current_val).lower() == 'true' else False
             user_responses[col_name] = st.checkbox(label="Check if Yes", value=is_checked, key=col_name)
         
         elif input_type == 'date':
-             user_responses[col_name] = st.text_input(label=label, label_visibility="collapsed", value=clean_current_val, key=col_name)
+             user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, key=col_name)
         
         st.write("")
         is_first_item = False 
