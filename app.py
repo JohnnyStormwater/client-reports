@@ -86,7 +86,13 @@ if user_row_index.empty:
 user_row_index = user_row_index[0] 
 
 # 6. SIDEBAR NAVIGATION
-st.sidebar.title(f"🏙️ {current_client_name}")
+# --- NEW: Dynamic Icon Logic! ---
+if user_county == "OC":
+    sidebar_icon = "🍊"
+else:
+    sidebar_icon = "🏙️"
+
+st.sidebar.title(f"{sidebar_icon} {current_client_name}")
 st.sidebar.markdown("---")
 tabs = df_config['Tab'].unique()
 selected_tab = st.sidebar.radio("Navigate", tabs)
@@ -104,21 +110,28 @@ if 'Tab Description' in df_config.columns:
         st.write("") 
 
 with st.form(key='dynamic_form'):
+    # TOP SAVE BUTTON
+    submitted_top = st.form_submit_button("💾 Save Progress", key="save_top")
+    
     user_responses = {}
+    is_first_item = True  # Tracks if we are on the very first question/header
 
     for index, row in tab_questions.iterrows():
         col_name = row['Column Name']
         label = row['Label']
         input_type = row['Type']
         
-        # Determine if we are in the Financial Section (Smart Match)
+        # Determine if we are in the Financial Section
         is_financial = "Expenditure" in selected_tab or "Budget" in selected_tab or "💲" in selected_tab
         
-        # --- SUBHEADER LOGIC WITH UNDERLINE ---
+        # --- SUBHEADER LOGIC ---
         if input_type == 'subheader':
-            st.markdown("---") 
-            st.markdown(f"### <u>{label}</u>", unsafe_allow_html=True)
+            if not is_first_item:
+                st.markdown("---") 
+            
+            st.markdown(f"<h3 style='margin-top: 0px;'><u>{label}</u></h3>", unsafe_allow_html=True)
             st.write("") 
+            is_first_item = False
             continue 
             
         # SAFETY CHECK
@@ -142,8 +155,6 @@ with st.form(key='dynamic_form'):
             st.markdown(f"**{display_label}**")
 
         # --- 2. CONTEXTUAL DATA (LAST YEAR & JLHA) ---
-        
-        # A. Check for Previous Year Data
         if 'Previous_Col' in row and pd.notna(row['Previous_Col']):
             prev_col_name = str(row['Previous_Col']).strip()
             
@@ -152,14 +163,12 @@ with st.form(key='dynamic_form'):
                 clean_prev_val = format_cell_value(raw_prev_val)
                 
                 if clean_prev_val != "" and input_type != 'readonly':
-                    # CUSTOM FINANCIAL SECTION LOGIC
                     if is_financial:
                         display_prev = format_currency(clean_prev_val)
                         st.caption(f"💰 **Last Year's Total:** {display_prev}")
                     else:
                         st.caption(f"🗓️ **Last year's response:** {clean_prev_val}")
 
-        # B. Check for JLHA Data
         if 'JLHA_Col' in df_config.columns and 'JLHA_Col' in row and pd.notna(row['JLHA_Col']):
             jlha_col_name = str(row['JLHA_Col']).strip()
             
@@ -188,7 +197,6 @@ with st.form(key='dynamic_form'):
              
              display_text = re.sub(r'(?i)(\d+\s*BMPs completed:)', r'<u>**\1**</u>', display_text)
              display_text = re.sub(r'(?i)(BMPs in progress:)', r'<u>**\1**</u>', display_text)
-             
              display_text = display_text.replace('\n', '  \n')
              
              if display_text != "":
@@ -223,10 +231,12 @@ with st.form(key='dynamic_form'):
              user_responses[col_name] = st.text_input(label=label, label_visibility="collapsed", value=clean_current_val, key=col_name)
         
         st.write("")
+        is_first_item = False 
     
-    # 8. SAVE BUTTON
-    submitted = st.form_submit_button("💾 Save Progress")
-    if submitted:
+    # 8. BOTTOM SAVE BUTTON & SUBMISSION LOGIC
+    submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom")
+    
+    if submitted_top or submitted_bottom:
         for col, new_val in user_responses.items():
             df_data.at[user_row_index, col] = new_val
         
