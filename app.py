@@ -86,7 +86,6 @@ if user_row_index.empty:
 user_row_index = user_row_index[0] 
 
 # 6. SIDEBAR NAVIGATION
-# --- NEW: Dynamic Icon Logic! ---
 if user_county == "OC":
     sidebar_icon = "🍊"
 else:
@@ -98,7 +97,8 @@ tabs = df_config['Tab'].unique()
 selected_tab = st.sidebar.radio("Navigate", tabs)
 
 # 7. DYNAMIC FORM GENERATOR
-st.header(f"{selected_tab} Reporting")
+# Removed the hardcoded "Reporting" text here!
+st.header(selected_tab)
 
 tab_questions = df_config[df_config['Tab'] == selected_tab]
 
@@ -114,14 +114,13 @@ with st.form(key='dynamic_form'):
     submitted_top = st.form_submit_button("💾 Save Progress", key="save_top")
     
     user_responses = {}
-    is_first_item = True  # Tracks if we are on the very first question/header
+    is_first_item = True  
 
     for index, row in tab_questions.iterrows():
         col_name = row['Column Name']
         label = row['Label']
         input_type = row['Type']
         
-        # Determine if we are in the Financial Section
         is_financial = "Expenditure" in selected_tab or "Budget" in selected_tab or "💲" in selected_tab
         
         # --- SUBHEADER LOGIC ---
@@ -143,7 +142,9 @@ with st.form(key='dynamic_form'):
         clean_current_val = format_cell_value(raw_current_val)
 
         # --- 1. DISPLAY THE QUESTION LABEL FIRST ---
-        display_label = str(label)
+        # Strip out any accidental spaces or asterisks from the spreadsheet data
+        display_label = str(label).replace("**", "").strip()
+        
         if "•" in display_label:
             parts = display_label.split("•")
             formatted_label = f"**{parts[0].strip()}**\n" 
