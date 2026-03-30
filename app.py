@@ -3,7 +3,7 @@ import pandas as pd
 from streamlit_gsheets import GSheetsConnection
 import re
 
-# --- HELPER FUNCTION FOR FORMATTING ---
+# --- HELPER FUNCTIONS FOR FORMATTING ---
 def format_cell_value(val):
     """
     Cleans up the value from Google Sheets so:
@@ -27,6 +27,23 @@ def format_cell_value(val):
             return str(float_val)
     except ValueError:
         return str_val
+
+def format_currency(val_str):
+    """
+    Forces numbers in the financial tab back into currency formatting
+    (e.g., '7000' -> '$7,000') just in case Google Sheets passes raw numbers.
+    """
+    if "$" in val_str:
+        return val_str # If it already has a $, leave it alone!
+    try:
+        clean_num = val_str.replace(",", "")
+        f_val = float(clean_num)
+        if f_val.is_integer():
+            return f"${int(f_val):,}"
+        else:
+            return f"${f_val:,.2f}"
+    except ValueError:
+        return val_str # If it's pure text like "N/A", leave it as text
 
 # 1. SETUP & CONNECTION
 st.set_page_config(page_title="Client Reporting Portal", layout="wide")
@@ -94,6 +111,9 @@ with st.form(key='dynamic_form'):
         label = row['Label']
         input_type = row['Type']
         
+        # Determine if we are in the Financial Section (Smart Match)
+        is_financial = "Expenditure" in selected_tab or "Budget" in selected_tab or "💲" in selected_tab
+        
         # --- SUBHEADER LOGIC WITH UNDERLINE ---
         if input_type == 'subheader':
             st.markdown("---") 
@@ -133,12 +153,13 @@ with st.form(key='dynamic_form'):
                 
                 if clean_prev_val != "" and input_type != 'readonly':
                     # CUSTOM FINANCIAL SECTION LOGIC
-                    if selected_tab == "💲 Expenditures and Budgets":
-                        st.caption(f"💰 **Last Year's Total:** {clean_prev_val}")
+                    if is_financial:
+                        display_prev = format_currency(clean_prev_val)
+                        st.caption(f"💰 **Last Year's Total:** {display_prev}")
                     else:
                         st.caption(f"🗓️ **Last year's response:** {clean_prev_val}")
 
-        # B. NEW: Check for JLHA Data
+        # B. Check for JLHA Data
         if 'JLHA_Col' in df_config.columns and 'JLHA_Col' in row and pd.notna(row['JLHA_Col']):
             jlha_col_name = str(row['JLHA_Col']).strip()
             
@@ -146,9 +167,9 @@ with st.form(key='dynamic_form'):
                 raw_jlha_val = df_data.at[user_row_index, jlha_col_name]
                 clean_jlha_val = format_cell_value(raw_jlha_val)
                 
-                # If there is data, display it right below the previous year response!
                 if clean_jlha_val != "" and input_type != 'readonly':
-                    st.caption(f"🐟 **JLHA Expenses:** {clean_jlha_val}")
+                    display_jlha = format_currency(clean_jlha_val) if is_financial else clean_jlha_val
+                    st.caption(f"🐟 **JLHA Expenses:** {display_jlha}")
 
         # --- 3. RENDER THE WIDGET ---
         if input_type == 'text':
