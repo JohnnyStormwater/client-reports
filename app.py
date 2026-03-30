@@ -125,10 +125,12 @@ with st.form(key='dynamic_form'):
         # --- SUBHEADER LOGIC ---
         if input_type == 'subheader':
             if not is_first_item:
+                # Add a tiny visual gap before the divider so it groups nicely with the NEW section
+                st.write("") 
                 st.markdown("---") 
             
-            st.markdown(f"<h3 style='margin-top: 0px;'><u>{label}</u></h3>", unsafe_allow_html=True)
-            st.write("") 
+            # Adjusted margin-bottom to bring the next question closer to the subheader
+            st.markdown(f"<h3 style='margin-top: 0px; margin-bottom: 10px;'><u>{label}</u></h3>", unsafe_allow_html=True)
             is_first_item = False
             continue 
             
@@ -152,14 +154,12 @@ with st.form(key='dynamic_form'):
                     formatted_label += f"* **{part.strip()}**\n" 
             st.markdown(formatted_label)
         else:
-            # NEW: Smart Multi-Line Bolding Logic
-            # Splits the text by newlines and bolds each paragraph individually
+            # Smart Multi-Line Bolding Logic
             formatted_parts = []
             for line in display_label.split('\n'):
-                if line.strip(): # Ignore completely blank lines
+                if line.strip(): 
                     formatted_parts.append(f"**{line.strip()}**")
             
-            # Joins them back together with proper Markdown paragraph breaks
             st.markdown("  \n\n".join(formatted_parts))
 
         # --- 2. CONTEXTUAL DATA (LAST YEAR & JLHA) ---
@@ -238,10 +238,12 @@ with st.form(key='dynamic_form'):
         elif input_type == 'date':
              user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, key=col_name)
         
-        st.write("")
+        # We removed the extra st.write("") here so the form elements stay tight!
         is_first_item = False 
     
     # 8. BOTTOM SAVE BUTTON & SUBMISSION LOGIC
+    # Add a little space right before the bottom save button so it doesn't crowd the last question
+    st.write("") 
     submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom")
     
     if submitted_top or submitted_bottom:
