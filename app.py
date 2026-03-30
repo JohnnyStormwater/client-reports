@@ -55,7 +55,8 @@ current_client_name = user_info['Client'].iloc[0]
 user_county = user_info['County'].iloc[0] # This will pull "LA", "OC", etc.
 
 # 4. LOAD THE CORRECT DATA & CONFIG SHEETS DYNAMICALLY
-df_data = conn.read(worksheet=f"{user_county}_Data", ttl=0, keep_default_na=False, skiprows=2)
+# --- UPDATED: skiprows=3 to account for your new header row! ---
+df_data = conn.read(worksheet=f"{user_county}_Data", ttl=0, keep_default_na=False, skiprows=3)
 df_data['Token'] = df_data['Token'].astype(str)
 
 df_config = conn.read(worksheet=f"{user_county}_Config", ttl=0)
@@ -110,7 +111,7 @@ with st.form(key='dynamic_form'):
         clean_current_val = format_cell_value(raw_current_val)
 
         # --- 1. DISPLAY THE QUESTION LABEL FIRST ---
-        # NEW: Smart bullet point formatter
+        # Smart bullet point formatter
         display_label = str(label)
         if "•" in display_label:
             parts = display_label.split("•")
