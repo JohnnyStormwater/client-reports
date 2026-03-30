@@ -125,11 +125,9 @@ with st.form(key='dynamic_form'):
         # --- SUBHEADER LOGIC ---
         if input_type == 'subheader':
             if not is_first_item:
-                # Add a tiny visual gap before the divider so it groups nicely with the NEW section
-                st.write("") 
-                st.markdown("---") 
+                # Custom HTML horizontal rule allows us to control the exact spacing!
+                st.markdown("<hr style='margin-top: 25px; margin-bottom: 15px;'>", unsafe_allow_html=True) 
             
-            # Adjusted margin-bottom to bring the next question closer to the subheader
             st.markdown(f"<h3 style='margin-top: 0px; margin-bottom: 10px;'><u>{label}</u></h3>", unsafe_allow_html=True)
             is_first_item = False
             continue 
@@ -143,7 +141,6 @@ with st.form(key='dynamic_form'):
         clean_current_val = format_cell_value(raw_current_val)
 
         # --- 1. DISPLAY THE QUESTION LABEL FIRST ---
-        # Strip out any accidental asterisks written in the spreadsheet data
         display_label = str(label).replace("**", "").strip()
         
         if "•" in display_label:
@@ -238,11 +235,9 @@ with st.form(key='dynamic_form'):
         elif input_type == 'date':
              user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, key=col_name)
         
-        # We removed the extra st.write("") here so the form elements stay tight!
         is_first_item = False 
     
     # 8. BOTTOM SAVE BUTTON & SUBMISSION LOGIC
-    # Add a little space right before the bottom save button so it doesn't crowd the last question
     st.write("") 
     submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom")
     
