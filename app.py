@@ -166,15 +166,16 @@ with st.form(key='dynamic_form'):
                 clean_prev_val = format_cell_value(raw_prev_val)
                 
                 if clean_prev_val != "" and input_type != 'readonly':
-                    # NEW: Using <br> instead of \n because this is now rendered as HTML
+                    # NEW: Smart separator check. Drops to a new line ONLY if it's a list.
+                    has_line_breaks = '\n' in clean_prev_val
+                    separator = "<br>" if has_line_breaks else " "
                     display_prev_text = clean_prev_val.replace('\n', '<br>')
                     
                     if is_financial:
                         display_prev = format_currency(clean_prev_val)
-                        # NEW: Negative margin-top pulls this tightly to the question!
-                        st.markdown(f"<div style='color: #a3a8b8; font-size: 0.85em; margin-top: -10px; margin-bottom: 5px;'>💰 <b>Last Year's Total:</b> {display_prev}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='color: #a3a8b8; font-size: 0.85em; margin-top: -10px; margin-bottom: 5px;'>💰 <b>Last Year's Total:</b>{separator}{display_prev}</div>", unsafe_allow_html=True)
                     else:
-                        st.markdown(f"<div style='color: #a3a8b8; font-size: 0.85em; margin-top: -10px; margin-bottom: 5px;'>🗓️ <b>Last year's response:</b><br>{display_prev_text}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='color: #a3a8b8; font-size: 0.85em; margin-top: -10px; margin-bottom: 5px;'>🗓️ <b>Last year's response:</b>{separator}{display_prev_text}</div>", unsafe_allow_html=True)
 
         if 'JLHA_Col' in df_config.columns and 'JLHA_Col' in row and pd.notna(row['JLHA_Col']):
             jlha_col_name = str(row['JLHA_Col']).strip()
@@ -184,13 +185,16 @@ with st.form(key='dynamic_form'):
                 clean_jlha_val = format_cell_value(raw_jlha_val)
                 
                 if clean_jlha_val != "" and input_type != 'readonly':
+                    # NEW: Smart separator check applied to JLHA as well!
+                    has_line_breaks = '\n' in clean_jlha_val
+                    separator = "<br>" if has_line_breaks else " "
                     display_jlha_text = clean_jlha_val.replace('\n', '<br>')
                     
                     if is_financial:
                         display_jlha = format_currency(clean_jlha_val)
-                        st.markdown(f"<div style='color: #a3a8b8; font-size: 0.85em; margin-top: -5px; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b> {display_jlha}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='color: #a3a8b8; font-size: 0.85em; margin-top: -5px; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha}</div>", unsafe_allow_html=True)
                     else:
-                        st.markdown(f"<div style='color: #a3a8b8; font-size: 0.85em; margin-top: -5px; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b><br>{display_jlha_text}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='color: #a3a8b8; font-size: 0.85em; margin-top: -5px; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha_text}</div>", unsafe_allow_html=True)
 
         # --- 3. RENDER THE WIDGET ---
         if input_type == 'text':
@@ -244,11 +248,12 @@ with st.form(key='dynamic_form'):
         
         is_first_item = False 
         
-        # --- NEW: Explicit Question Spacer ---
-        # This adds a crisp, guaranteed 30-pixel gap between the bottom of the input widget and the start of the next question!
-        st.markdown("<div style='margin-bottom: 30px;'></div>", unsafe_allow_html=True)
+        # --- REVERTED TO STANDARD SPACING ---
+        # Instead of forcing a 30px gap, this uses Streamlit's natural spacing again.
+        st.write("")
     
     # 8. BOTTOM SAVE BUTTON & SUBMISSION LOGIC
+    st.write("") 
     submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom")
     
     if submitted_top or submitted_bottom:
