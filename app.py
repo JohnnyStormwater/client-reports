@@ -5,12 +5,6 @@ import re
 
 # --- HELPER FUNCTIONS FOR FORMATTING ---
 def format_cell_value(val):
-    """
-    Cleans up the value from Google Sheets so:
-    1. '99.0' becomes '99'
-    2. '99.6' stays '99.6'
-    3. 'None', 'N/A', '0' show up as text instead of disappearing
-    """
     if pd.isna(val):
         return ""
     
@@ -29,12 +23,8 @@ def format_cell_value(val):
         return str_val
 
 def format_currency(val_str):
-    """
-    Forces numbers in the financial tab back into currency formatting
-    (e.g., '7000' -> '$7,000') just in case Google Sheets passes raw numbers.
-    """
     if "$" in val_str:
-        return val_str # If it already has a $, leave it alone!
+        return val_str 
     try:
         clean_num = val_str.replace(",", "")
         f_val = float(clean_num)
@@ -43,7 +33,7 @@ def format_currency(val_str):
         else:
             return f"${f_val:,.2f}"
     except ValueError:
-        return val_str # If it's pure text like "N/A", leave it as text
+        return val_str 
 
 # 1. SETUP & CONNECTION
 st.set_page_config(page_title="Client Reporting Portal", layout="wide")
@@ -67,18 +57,27 @@ if user_info.empty:
     st.error("⛔ Invalid Token. Please check your link or the Directory tab.")
     st.stop()
 
-# Extract the user's Client Name and County
 current_client_name = user_info['Client'].iloc[0]
 user_county = user_info['County'].iloc[0] 
 
-# 4. LOAD THE CORRECT DATA & CONFIG SHEETS DYNAMICALLY
-df_data = conn.read(worksheet=f"{user_county}_Data", ttl=0, keep_default_na=False, skiprows=3)
+# 4. LOAD THE DATA SAFELY (THE NEW BULLETPROOF METHOD)
+# We read the raw grid without skipping ANY rows so we don't lose your formatting!
+df_raw = conn.read(worksheet=f"{user_county}_Data", ttl=0, keep_default_na=False, header=None)
+
+# We teach the app exactly how your specific spreadsheet is structured:
+# Row Index 3 (Sheet Row 4) contains the Q1, Q2 column headers
+headers = df_raw.iloc[3] 
+
+# Row Index 4+ (Sheet Row 5+) contains the actual client data
+df_data = df_raw.iloc[4:].copy() 
+df_data.columns = headers
+df_data = df_data.reset_index(drop=True)
 df_data['Token'] = df_data['Token'].astype(str)
 
 df_config = conn.read(worksheet=f"{user_county}_Config", ttl=0)
 
-# 5. FIND THE USER'S ROW IN THEIR SPECIFIC DATA SHEET
-user_row_index = df_data[df_data['Token'] == user_token].index
+# 5. FIND THE USER'S ROW 
+user_row_index = df_data[df_data['Token'] == str(user_token)].index
 if user_row_index.empty:
     st.error(f"⛔ Token found in Directory, but missing from {user_county}_Data sheet!")
     st.stop()
@@ -101,7 +100,6 @@ st.header(selected_tab)
 
 tab_questions = df_config[df_config['Tab'] == selected_tab]
 
-# --- DYNAMIC SECTION DESCRIPTION ---
 if 'Tab Description' in df_config.columns:
     descriptions = tab_questions['Tab Description'].dropna().unique()
     if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
@@ -166,7 +164,6 @@ with st.form(key='dynamic_form'):
                 clean_prev_val = format_cell_value(raw_prev_val)
                 
                 if clean_prev_val != "" and input_type != 'readonly':
-                    # NEW: Smart separator check. Drops to a new line ONLY if it's a list.
                     has_line_breaks = '\n' in clean_prev_val
                     separator = "<br>" if has_line_breaks else " "
                     display_prev_text = clean_prev_val.replace('\n', '<br>')
@@ -185,7 +182,6 @@ with st.form(key='dynamic_form'):
                 clean_jlha_val = format_cell_value(raw_jlha_val)
                 
                 if clean_jlha_val != "" and input_type != 'readonly':
-                    # NEW: Smart separator check applied to JLHA as well!
                     has_line_breaks = '\n' in clean_jlha_val
                     separator = "<br>" if has_line_breaks else " "
                     display_jlha_text = clean_jlha_val.replace('\n', '<br>')
@@ -247,9 +243,6 @@ with st.form(key='dynamic_form'):
              user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, key=col_name)
         
         is_first_item = False 
-        
-        # --- REVERTED TO STANDARD SPACING ---
-        # Instead of forcing a 30px gap, this uses Streamlit's natural spacing again.
         st.write("")
     
     # 8. BOTTOM SAVE BUTTON & SUBMISSION LOGIC
@@ -257,9 +250,22 @@ with st.form(key='dynamic_form'):
     submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom")
     
     if submitted_top or submitted_bottom:
-        for col, new_val in user_responses.items():
-            df_data.at[user_row_index, col] = new_val
+        headers_list = list(headers)
         
-        conn.update(worksheet=f"{user_county}_Data", data=df_data)
+        for col, new_val in user_responses.items():
+            # 1. Update the app's internal memory
+            df_data.at[user_row_index, col] = new_val
+            
+            # 2. Update the raw spreadsheet grid!
+            if col in headers_list:
+                col_idx = headers_list.index(col)
+                # user_row_index + 4 ensures we target Sheet Row 5 and beyond
+                df_raw.iat[user_row_index + 4, col_idx] = new_val
+        
+        # Format the raw grid so Streamlit saves it exactly as it found it
+        df_raw.columns = df_raw.iloc[0]
+        df_to_save = df_raw.iloc[1:].copy()
+        
+        conn.update(worksheet=f"{user_county}_Data", data=df_to_save)
         st.success(f"✅ Saved data for {selected_tab}!")
         st.rerun()
