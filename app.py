@@ -60,7 +60,7 @@ if user_info.empty:
 current_client_name = user_info['Client'].iloc[0]
 user_county = user_info['County'].iloc[0] 
 
-# 4. LOAD THE DATA SAFELY (THE BULLETPROOF METHOD)
+# 4. LOAD THE DATA SAFELY
 df_raw = conn.read(worksheet=f"{user_county}_Data", ttl=0, keep_default_na=False, header=None)
 
 headers = df_raw.iloc[3] 
@@ -92,8 +92,8 @@ tabs = df_config['Tab'].unique()
 selected_tab = st.sidebar.radio("Navigate", tabs)
 
 # 7. DYNAMIC FORM GENERATOR
-st.header(selected_tab)
 
+# Section Description (Prints right above the form box)
 tab_questions = df_config[df_config['Tab'] == selected_tab]
 
 if 'Tab Description' in df_config.columns:
@@ -102,9 +102,33 @@ if 'Tab Description' in df_config.columns:
         st.markdown(str(descriptions[0]))
         st.write("") 
 
+# --- NEW: CSS FOR STICKY HEADER ---
+# This CSS dynamically uses Streamlit's built-in background colors so it works perfectly in Dark OR Light mode!
+st.markdown("""
+    <style>
+        [data-testid="stForm"] > div:nth-child(1) {
+            position: sticky;
+            top: 50px; 
+            background-color: var(--background-color);
+            z-index: 999;
+            padding-bottom: 15px;
+            padding-top: 10px;
+            border-bottom: 2px solid var(--secondary-background-color);
+            margin-bottom: 20px;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 with st.form(key='dynamic_form'):
-    # TOP SAVE BUTTON
-    submitted_top = st.form_submit_button("💾 Save Progress", key="save_top")
+    
+    # --- NEW: STICKY HEADER & SAVE BUTTON ROW ---
+    # This must remain the absolute first thing inside the st.form block for the CSS to target it properly!
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.markdown(f"<h2 style='margin-top: 0px; padding-top: 0px;'>{selected_tab}</h2>", unsafe_allow_html=True)
+    with col2:
+        st.write("") # Tiny invisible nudge to vertically align the button with the large text
+        submitted = st.form_submit_button("💾 Save Progress", use_container_width=True)
     
     user_responses = {}
     is_first_item = True  
@@ -121,7 +145,6 @@ with st.form(key='dynamic_form'):
             if not is_first_item:
                 st.markdown("<hr style='margin-top: 25px; margin-bottom: 15px;'>", unsafe_allow_html=True) 
             
-            # FIXED: Removed the <u> and </u> tags from this line!
             st.markdown(f"<h3 style='margin-top: 0px; margin-bottom: 10px;'>{label}</h3>", unsafe_allow_html=True)
             is_first_item = False
             continue 
@@ -242,11 +265,9 @@ with st.form(key='dynamic_form'):
         is_first_item = False 
         st.write("")
     
-    # 8. BOTTOM SAVE BUTTON & SUBMISSION LOGIC
-    st.write("") 
-    submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom")
-    
-    if submitted_top or submitted_bottom:
+    # 8. SUBMISSION LOGIC
+    # Notice we don't have bottom or top buttons here anymore, it just listens to the sticky one!
+    if submitted:
         headers_list = list(headers)
         
         for col, new_val in user_responses.items():
