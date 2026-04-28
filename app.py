@@ -157,7 +157,7 @@ if 'Tab Description' in df_config.columns:
     if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
         st.markdown(f"<p style='color: #444444; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
 
-# --- UPDATED: CSS FOR L-SHAPED LAYOUT ---
+# --- UPDATED: CSS FOR 2-TONE CARD LAYOUT, MENU TABS, & PROGRESS BARS ---
 st.markdown("""
     <style>
         /* 1. Main page background */
@@ -165,18 +165,16 @@ st.markdown("""
             background-color: #f0f2f6 !important;
         }
         
-        /* NEW: Make the Sidebar pure white to match the top bar */
+        /* 2. White Sidebar & Header */
         [data-testid="stSidebar"] {
             background-color: #ffffff !important;
-            border-right: 1px solid #e0e6ed !important; /* Subtle separator line */
+            border-right: 1px solid #e0e6ed !important;
         }
-        
-        /* NEW: Explicitly make the top header white to blend perfectly */
         [data-testid="stHeader"] {
             background-color: #ffffff !important;
         }
 
-        /* 2. Makes the form itself a crisp, pure white card */
+        /* 3. The Form Card */
         [data-testid="stForm"] {
             background-color: #ffffff !important;
             border-radius: 12px !important;
@@ -185,7 +183,7 @@ st.markdown("""
             padding: 30px !important;
         }
 
-        /* 3. The glowing outline when a user clicks into a box */
+        /* 4. Input Field Focus Glow & Color Change */
         div[data-baseweb="input"]:focus-within, 
         div[data-baseweb="textarea"]:focus-within,
         div[data-baseweb="select"]:focus-within {
@@ -193,29 +191,68 @@ st.markdown("""
             box-shadow: 0 0 8px rgba(28, 131, 225, 0.3) !important;
             transition: all 0.2s ease-in-out;
         }
-        
-        /* 4. If the box is empty (showing the placeholder space), make it pure white */
         div[data-baseweb="input"] input:placeholder-shown,
         div[data-baseweb="textarea"] textarea:placeholder-shown {
             background-color: #ffffff !important;
         }
-
-        /* 5. If the box has text typed in it (placeholder hidden), turn it a noticeable gray */
         div[data-baseweb="input"] input:not(:placeholder-shown),
         div[data-baseweb="textarea"] textarea:not(:placeholder-shown) {
             background-color: #e2e6ea !important;
         }
         
-        /* 6. Force the Save Buttons to be Blue with White Text! */
+        /* 5. Blue Save Buttons */
         [data-testid="stFormSubmitButton"] button {
             background-color: #1C83E1 !important;
             color: #ffffff !important;
             border: none !important;
         }
-        
         [data-testid="stFormSubmitButton"] button:hover {
             background-color: #1565C0 !important;
             color: #ffffff !important;
+        }
+
+        /* --- NEW: CUSTOM PROGRESS BARS --- */
+        [data-testid="stProgressBar"] > div {
+            background-color: #EAF4FF !important; /* Pale blue track */
+        }
+        [data-testid="stProgressBar"] > div > div {
+            background-color: #3A9DF8 !important; /* Lighter blue fill */
+        }
+
+        /* --- NEW: MENU TAB RADIO BUTTONS --- */
+        [data-testid="stSidebar"] div[role="radiogroup"] > label {
+            background-color: #EAF4FF !important; /* Pale blue unclicked */
+            border-radius: 8px !important;
+            padding: 8px 12px !important;
+            margin-bottom: 8px !important;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        /* Hover effect for unclicked tabs */
+        [data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
+            background-color: #D6E8FC !important;
+        }
+
+        /* Lighter blue for clicked/active tab */
+        [data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
+            background-color: #3A9DF8 !important; 
+        }
+
+        /* Dark text for readable unclicked tabs */
+        [data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:not(:checked)) p {
+            color: #444444 !important; 
+        }
+
+        /* White text for active tab */
+        [data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) p {
+            color: #ffffff !important; 
+            font-weight: bold !important;
+        }
+        
+        /* Hide the radio circle for a clean menu tab look */
+        [data-testid="stSidebar"] div[role="radiogroup"] div[data-baseweb="radio"] > div:first-child {
+            display: none !important;
         }
     </style>
 """, unsafe_allow_html=True)
