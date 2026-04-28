@@ -157,7 +157,7 @@ if 'Tab Description' in df_config.columns:
     if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
         st.markdown(f"<p style='color: #444444; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
 
-# --- UPDATED: BULLETPROOF CSS FOR PROGRESS BARS ---
+# --- UPDATED: BULLETPROOF CSS FOR PROGRESS BARS & BORDERS ---
 st.markdown("""
     <style>
         /* 1. Main page background */
@@ -183,7 +183,7 @@ st.markdown("""
             padding: 30px !important;
         }
 
-        /* 4. DEFAULT TEXT BOX BORDERS */
+        /* 4. DEFAULT TEXT BOX BORDERS (Defining boundaries) */
         div[data-baseweb="input"], 
         div[data-baseweb="textarea"],
         div[data-baseweb="select"] {
@@ -192,7 +192,7 @@ st.markdown("""
             transition: all 0.2s ease-in-out;
         }
 
-        /* 5. Input Field Focus Glow */
+        /* 5. Input Field Focus Glow (Preserving Blue Glow!) */
         div[data-baseweb="input"]:focus-within, 
         div[data-baseweb="textarea"]:focus-within,
         div[data-baseweb="select"]:focus-within {
@@ -200,7 +200,7 @@ st.markdown("""
             box-shadow: 0 0 8px rgba(28, 131, 225, 0.3) !important;
         }
         
-        /* 6. Text Box Background Colors */
+        /* 6. Text Box Background Colors (Pure white when empty, gray when filled) */
         div[data-baseweb="input"] input:placeholder-shown,
         div[data-baseweb="textarea"] textarea:placeholder-shown {
             background-color: #ffffff !important;
@@ -221,12 +221,22 @@ st.markdown("""
             color: #ffffff !important;
         }
 
-        /* --- 8. CORRECTED PROGRESS BAR COLORS --- */
-        /* Targets the physical bar container, ignoring the text label */
-        [data-testid="stProgressBar"] > div:last-child {
-            background-color: #e0e6ed !important; /* The same slate-gray as the form borders */
+        /* --- 8. CORRECTED: DEFINED CARD BORDERS AROUND PROGRESS BARS --- */
+        /* Targets the main containers for Overall and Section progress in the sidebar */
+        [data-testid="stProgressBar"] {
+            background-color: #f0f2f6 !important; /* Visible gray defined background */
+            border: 1px solid #e0e6ed !important; /* Boundary border (same as form/sidebar separators) */
             border-radius: 10px !important;
+            padding: 15px !important; /* Internal breathing room */
+            margin-bottom: 15px !important; /* Space between bars */
+            box-shadow: inset 0px 1px 3px rgba(0, 0, 0, 0.05) !important; /* Faint internal depth */
         }
+        
+        /* Ensure track itself uses the same slate-gray as the track container */
+        [data-testid="stProgressBar"] > div:last-child {
+            background-color: #f0f2f6 !important;
+        }
+        
         /* Targets the blue fill inside */
         [data-testid="stProgressBar"] > div:last-child > div {
             background-color: #1C83E1 !important; 
