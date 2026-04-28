@@ -39,8 +39,9 @@ def format_currency(val_str):
 st.set_page_config(page_title="Client Reporting Portal", layout="wide")
 
 # --- CELEBRATION TRIGGER ---
+# This checks if the user just completed a section on the previous screen refresh
 if st.session_state.get('show_celebration', False):
-    st.balloons()  # Switched back to balloons!
+    st.balloons()  
     st.session_state['show_celebration'] = False
 
 conn = st.connection("gsheets", type=GSheetsConnection)
@@ -56,7 +57,7 @@ if not user_token:
 # --- THE ROUTER ---
 # 3. READ DIRECTORY TO FIND THE USER'S COUNTY
 try:
-    df_directory = conn.read(worksheet="Directory", ttl=60)
+    df_directory = conn.read(worksheet="Directory", ttl="10m")
     df_directory['Token'] = df_directory['Token'].astype(str)
 except Exception as e:
     st.error("⛔ Google API Error: Could not read the 'Directory' tab. Please check your sheet names or wait a moment if rate-limited.")
@@ -70,9 +71,9 @@ if user_info.empty:
 current_client_name = user_info['Client'].iloc[0]
 user_county = user_info['County'].iloc[0] 
 
-# 4. LOAD THE DATA SAFELY (With new Error Handling!)
+# 4. LOAD THE DATA SAFELY (With new Cache TTL!)
 try:
-    df_raw = conn.read(worksheet=f"{user_county}_Data", ttl=0, keep_default_na=False, header=None)
+    df_raw = conn.read(worksheet=f"{user_county}_Data", ttl="10m", keep_default_na=False, header=None)
 except Exception as e:
     st.error(f"⛔ Google API Error: Could not find the tab named '{user_county}_Data' or the app is rate-limited.")
     st.stop()
@@ -85,8 +86,7 @@ df_data = df_data.reset_index(drop=True)
 df_data['Token'] = df_data['Token'].astype(str)
 
 try:
-    # Changed TTL to 60 seconds to prevent hitting Google's rate limit so easily!
-    df_config = conn.read(worksheet=f"{user_county}_Config", ttl=60)
+    df_config = conn.read(worksheet=f"{user_county}_Config", ttl="10m")
 except Exception as e:
     st.error(f"⛔ Google API Error: Could not find the tab named '{user_county}_Config' or the app is rate-limited.")
     st.stop()
@@ -450,7 +450,11 @@ with st.form(key='dynamic_form'):
         
         try:
             conn.update(worksheet=f"{user_county}_Data", data=df_to_save)
+            
+            # THE MAGIC FIX: Clear the memory snapshot so the next load is fresh!
+            st.cache_data.clear()
+            
             st.success(f"✅ Saved data for {selected_tab}!")
             st.rerun()
         except Exception as e:
-             st.error("⛔ Google API Error: Could not save data. The app may be rate-limited. Please wait a minute and try again.")
+            st.error("⛔ Google API Error: Could not save data. The app may be rate-limited. Please wait a minute and try again.")
