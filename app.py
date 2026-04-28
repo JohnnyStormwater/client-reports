@@ -155,17 +155,18 @@ st.markdown(f"<h1 style='margin-top: 0px; padding-top: 0px;'>{selected_tab}</h1>
 if 'Tab Description' in df_config.columns:
     descriptions = tab_questions['Tab Description'].dropna().unique()
     if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
-        st.markdown(f"<p style='color: var(--text-color); opacity: 0.8; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
+        # UPDATED: Hardcoded to #444444 (Dark Gray) for perfect readability
+        st.markdown(f"<p style='color: #444444; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
 
-# --- UPDATED: CSS FOR NOTICEABLE COLOR CHANGES ---
+# --- UPDATED: CSS FOR BLUE BUTTONS & FOCUS GLOW ---
 st.markdown("""
     <style>
         /* The glowing outline when a user clicks into a box */
         div[data-baseweb="input"]:focus-within, 
         div[data-baseweb="textarea"]:focus-within,
         div[data-baseweb="select"]:focus-within {
-            border-color: var(--primary-color) !important;
-            box-shadow: 0 0 8px rgba(28, 131, 225, 0.3) !important; /* Soft blue glow */
+            border-color: #1C83E1 !important;
+            box-shadow: 0 0 8px rgba(28, 131, 225, 0.3) !important;
             transition: all 0.2s ease-in-out;
         }
         
@@ -180,13 +181,25 @@ st.markdown("""
         div[data-baseweb="textarea"] textarea:not(:placeholder-shown) {
             background-color: #e2e6ea !important;
         }
+        
+        /* Force the Save Buttons to be Blue with White Text! */
+        [data-testid="stFormSubmitButton"] button {
+            background-color: #1C83E1 !important;
+            color: #ffffff !important;
+            border: none !important;
+        }
+        
+        [data-testid="stFormSubmitButton"] button:hover {
+            background-color: #1565C0 !important; /* Slightly darker blue when hovering */
+            color: #ffffff !important;
+        }
     </style>
 """, unsafe_allow_html=True)
 
 with st.form(key='dynamic_form'):
 
-    # --- TOP SAVE BUTTON (Now 'primary' so it uses your blue theme color!) ---
-    submitted_top = st.form_submit_button("💾 Save Progress", key="save_top", use_container_width=True, type="primary")
+    # --- TOP SAVE BUTTON ---
+    submitted_top = st.form_submit_button("💾 Save Progress", key="save_top", use_container_width=True)
 
     user_responses = {}
     is_first_item = True  
@@ -234,7 +247,7 @@ with st.form(key='dynamic_form'):
             st.markdown("  \n\n".join(formatted_parts))
 
         # --- 2. CONTEXTUAL DATA (LAST YEAR & JLHA) ---
-        # UPDATED: Changed #a3a8b8 to #666666 for proper contrast in Light Mode
+        # UPDATED: Changed to #444444 (Dark Gray) to match the main subheader description
         if 'Previous_Col' in row and pd.notna(row['Previous_Col']):
             prev_col_name = str(row['Previous_Col']).strip()
             
@@ -249,9 +262,9 @@ with st.form(key='dynamic_form'):
                     
                     if is_financial:
                         display_prev = format_currency(clean_prev_val)
-                        st.markdown(f"<div style='color: #666666; font-size: 0.85em; margin-top: -10px; margin-bottom: 5px;'>💰 <b>Last Year's Total:</b>{separator}{display_prev}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='color: #444444; font-size: 0.85em; margin-top: -10px; margin-bottom: 5px;'>💰 <b>Last Year's Total:</b>{separator}{display_prev}</div>", unsafe_allow_html=True)
                     else:
-                        st.markdown(f"<div style='color: #666666; font-size: 0.85em; margin-top: -10px; margin-bottom: 5px;'>🗓️ <b>Last year's response:</b>{separator}{display_prev_text}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='color: #444444; font-size: 0.85em; margin-top: -10px; margin-bottom: 5px;'>🗓️ <b>Last year's response:</b>{separator}{display_prev_text}</div>", unsafe_allow_html=True)
 
         if 'JLHA_Col' in df_config.columns and 'JLHA_Col' in row and pd.notna(row['JLHA_Col']):
             jlha_col_name = str(row['JLHA_Col']).strip()
@@ -267,9 +280,9 @@ with st.form(key='dynamic_form'):
                     
                     if is_financial:
                         display_jlha = format_currency(clean_jlha_val)
-                        st.markdown(f"<div style='color: #666666; font-size: 0.85em; margin-top: -5px; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='color: #444444; font-size: 0.85em; margin-top: -5px; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha}</div>", unsafe_allow_html=True)
                     else:
-                        st.markdown(f"<div style='color: #666666; font-size: 0.85em; margin-top: -5px; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha_text}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='color: #444444; font-size: 0.85em; margin-top: -5px; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha_text}</div>", unsafe_allow_html=True)
 
         # --- 3. RENDER THE WIDGET ---
         if input_type == 'text':
@@ -327,9 +340,9 @@ with st.form(key='dynamic_form'):
         is_first_item = False 
         st.write("")
     
-    # --- BOTTOM SAVE BUTTON (Also updated to primary blue!) ---
+    # --- BOTTOM SAVE BUTTON ---
     st.write("")
-    submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom", use_container_width=True, type="primary")
+    submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom", use_container_width=True)
     
     # 8. SUBMISSION LOGIC
     if submitted_top or submitted_bottom:
