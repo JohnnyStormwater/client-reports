@@ -137,9 +137,17 @@ else:
 
 st.sidebar.title(f"{sidebar_icon} {current_client_name}")
 
-# --- HTML OVERALL PROGRESS BAR ---
+# --- NEW: CREATE A CONTAINER TO HOLD THE TOP SPOT FOR SECTION PROGRESS ---
+top_sidebar_placeholder = st.sidebar.container()
+
+# Render Navigation Radio
+selected_tab = st.sidebar.radio("Navigate", tabs, format_func=lambda x: tab_display_dict[x])
+
+st.sidebar.markdown("---")
+
+# --- HTML OVERALL PROGRESS BAR (Moved to the bottom!) ---
 overall_progress_html = f"""
-<div style="background-color: #eef6fc; border: 1px solid #cde0f5; border-radius: 8px; padding: 15px; margin-bottom: 25px;">
+<div style="background-color: #eef6fc; border: 1px solid #cde0f5; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
     <div style="font-weight: bold; color: #1C83E1; margin-bottom: 5px;">🏆 Overall Progress:</div>
     <div style="font-size: 13px; color: #444444; margin-bottom: 10px;">{filled_overall_questions} of {total_overall_questions} total answered</div>
     <div style="background-color: #d0d7e2; border-radius: 10px; width: 100%; height: 10px;">
@@ -149,8 +157,6 @@ overall_progress_html = f"""
 """
 st.sidebar.markdown(overall_progress_html, unsafe_allow_html=True)
 
-
-selected_tab = st.sidebar.radio("Navigate", tabs, format_func=lambda x: tab_display_dict[x])
 
 # --- SECTION PROGRESS TRACKER LOGIC ---
 tab_questions = df_config[df_config['Tab'] == selected_tab]
@@ -168,14 +174,13 @@ for index, row in actionable_questions.iterrows():
 
 progress_percent = int((filled_questions / total_questions) * 100) if total_questions > 0 else 100
 
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 📍 Currently Editing:")
-st.sidebar.info(f"**{selected_tab}**")
 
+# --- HTML SECTION PROGRESS BAR (Injected into the top placeholder!) ---
+top_sidebar_placeholder.markdown("### 📍 Currently Editing:")
+top_sidebar_placeholder.info(f"**{selected_tab}**")
 
-# --- HTML SECTION PROGRESS BAR ---
 section_progress_html = f"""
-<div style="background-color: #eef6fc; border: 1px solid #cde0f5; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+<div style="background-color: #eef6fc; border: 1px solid #cde0f5; border-radius: 8px; padding: 15px; margin-bottom: 25px;">
     <div style="font-weight: bold; color: #1C83E1; margin-bottom: 5px;">📊 Section Progress:</div>
     <div style="font-size: 13px; color: #444444; margin-bottom: 10px;">{filled_questions} of {total_questions} answered</div>
     <div style="background-color: #d0d7e2; border-radius: 10px; width: 100%; height: 10px;">
@@ -183,7 +188,7 @@ section_progress_html = f"""
     </div>
 </div>
 """
-st.sidebar.markdown(section_progress_html, unsafe_allow_html=True)
+top_sidebar_placeholder.markdown(section_progress_html, unsafe_allow_html=True)
 
 
 # 7. DYNAMIC FORM GENERATOR
