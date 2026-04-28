@@ -121,8 +121,9 @@ for t in tabs:
                 t_filled += 1
                 filled_overall_questions += 1
     
+    # --- UPDATED: Adds Markdown Strikethrough for completed tabs! ---
     if t_total > 0 and t_filled == t_total:
-        tab_display_dict[t] = f"✅ {t}"  
+        tab_display_dict[t] = f"✅ ~~{t}~~"  
     else:
         tab_display_dict[t] = t         
 
