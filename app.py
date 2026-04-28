@@ -80,6 +80,22 @@ if user_row_index.empty:
 
 user_row_index = user_row_index[0] 
 
+# --- NEW: OVERALL PROGRESS CALCULATOR ---
+# Scans EVERY tab to calculate the grand total progress
+all_actionable_questions = df_config[~df_config['Type'].isin(['subheader', 'readonly'])]
+total_overall_questions = len(all_actionable_questions)
+filled_overall_questions = 0
+
+for idx, row in all_actionable_questions.iterrows():
+    col_name = row['Column Name']
+    if col_name in df_data.columns:
+        val = format_cell_value(df_data.at[user_row_index, col_name])
+        if val != "":
+            filled_overall_questions += 1
+
+overall_percent = int((filled_overall_questions / total_overall_questions) * 100) if total_overall_questions > 0 else 100
+
+
 # 6. SIDEBAR NAVIGATION
 if user_county == "OC":
     sidebar_icon = "🍊"
@@ -87,15 +103,18 @@ else:
     sidebar_icon = "🏙️"
 
 st.sidebar.title(f"{sidebar_icon} {current_client_name}")
+
+# Injecting the Overall Progress bar right below the Client Name
+st.sidebar.markdown("**🏆 Overall Progress:**")
+st.sidebar.progress(overall_percent, text=f"{filled_overall_questions} of {total_overall_questions} total answered")
 st.sidebar.markdown("---")
 
 tabs = df_config['Tab'].unique()
 selected_tab = st.sidebar.radio("Navigate", tabs)
 
-# --- NEW: PROGRESS TRACKER LOGIC ---
+# --- SECTION PROGRESS TRACKER LOGIC ---
 tab_questions = df_config[df_config['Tab'] == selected_tab]
 
-# Filter out subheaders and read-only text so they don't count as "unanswered" questions
 actionable_questions = tab_questions[~tab_questions['Type'].isin(['subheader', 'readonly'])]
 total_questions = len(actionable_questions)
 filled_questions = 0
@@ -104,49 +123,49 @@ for index, row in actionable_questions.iterrows():
     col_name = row['Column Name']
     if col_name in df_data.columns:
         val = format_cell_value(df_data.at[user_row_index, col_name])
-        # If the cell is not empty, count it as completed!
         if val != "":
             filled_questions += 1
 
-# Calculate the percentage (safeguard against dividing by zero)
 progress_percent = int((filled_questions / total_questions) * 100) if total_questions > 0 else 100
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 📍 Currently Editing:")
 st.sidebar.info(f"**{selected_tab}**")
 
-# Injecting the visual progress bar right into the sidebar
-st.sidebar.markdown("### 📊 Section Progress:")
+st.sidebar.markdown("**📊 Section Progress:**")
 st.sidebar.progress(progress_percent, text=f"{filled_questions} of {total_questions} answered")
 
 
 # 7. DYNAMIC FORM GENERATOR
-# --- UPDATED: CSS FOR TOP-RIGHT FLOATING BUTTON ---
+
+# --- REVERTED: Clean Header is OUTSIDE the form box again! ---
+st.markdown(f"<h1 style='margin-top: 0px; padding-top: 0px;'>{selected_tab}</h1>", unsafe_allow_html=True)
+    
+if 'Tab Description' in df_config.columns:
+    descriptions = tab_questions['Tab Description'].dropna().unique()
+    if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
+        st.markdown(f"<p style='color: var(--text-color); opacity: 0.8; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
+
+# --- UPDATED: CSS FOR A CLEANER, SMALLER FLOATING BUTTON ---
 st.markdown("""
     <style>
         [data-testid="stFormSubmitButton"] {
             position: fixed !important;
-            top: 70px !important; /* Pinned to the top, safely below Streamlit's nav bar */
-            right: 40px !important;
+            top: 65px !important; 
+            right: 30px !important;
+            width: max-content !important; /* Prevents the button from stretching too wide */
             z-index: 9999 !important;
         }
         [data-testid="stFormSubmitButton"] button {
-            box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.4) !important;
-            border-radius: 30px !important;
-            padding: 10px 25px !important;
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.25) !important;
+            border-radius: 20px !important;
+            padding: 4px 16px !important; /* Shrinks the internal padding to make it less intrusive */
             border: 2px solid var(--primary-color) !important;
         }
     </style>
 """, unsafe_allow_html=True)
 
 with st.form(key='dynamic_form'):
-    
-    st.markdown(f"<h2 style='margin-top: 0px; padding-top: 0px;'>{selected_tab}</h2>", unsafe_allow_html=True)
-        
-    if 'Tab Description' in df_config.columns:
-        descriptions = tab_questions['Tab Description'].dropna().unique()
-        if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
-            st.markdown(f"<p style='color: var(--text-color); opacity: 0.8; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
 
     user_responses = {}
     is_first_item = True  
