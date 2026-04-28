@@ -80,8 +80,7 @@ if user_row_index.empty:
 
 user_row_index = user_row_index[0] 
 
-# --- NEW: OVERALL PROGRESS CALCULATOR ---
-# Scans EVERY tab to calculate the grand total progress
+# --- OVERALL PROGRESS CALCULATOR ---
 all_actionable_questions = df_config[~df_config['Type'].isin(['subheader', 'readonly'])]
 total_overall_questions = len(all_actionable_questions)
 filled_overall_questions = 0
@@ -104,7 +103,6 @@ else:
 
 st.sidebar.title(f"{sidebar_icon} {current_client_name}")
 
-# Injecting the Overall Progress bar right below the Client Name
 st.sidebar.markdown("**🏆 Overall Progress:**")
 st.sidebar.progress(overall_percent, text=f"{filled_overall_questions} of {total_overall_questions} total answered")
 st.sidebar.markdown("---")
@@ -138,7 +136,6 @@ st.sidebar.progress(progress_percent, text=f"{filled_questions} of {total_questi
 
 # 7. DYNAMIC FORM GENERATOR
 
-# --- REVERTED: Clean Header is OUTSIDE the form box again! ---
 st.markdown(f"<h1 style='margin-top: 0px; padding-top: 0px;'>{selected_tab}</h1>", unsafe_allow_html=True)
     
 if 'Tab Description' in df_config.columns:
@@ -146,21 +143,23 @@ if 'Tab Description' in df_config.columns:
     if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
         st.markdown(f"<p style='color: var(--text-color); opacity: 0.8; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
 
-# --- UPDATED: CSS FOR A CLEANER, SMALLER FLOATING BUTTON ---
+# --- UPDATED: CSS FOR A BIG, BOLD, SAFE FLOATING BUTTON ---
 st.markdown("""
     <style>
         [data-testid="stFormSubmitButton"] {
             position: fixed !important;
             top: 65px !important; 
             right: 30px !important;
-            width: max-content !important; /* Prevents the button from stretching too wide */
-            z-index: 9999 !important;
+            width: max-content !important; /* Prevents the horizontal stretch into the sidebar */
+            z-index: 99999 !important;
         }
         [data-testid="stFormSubmitButton"] button {
-            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.25) !important;
-            border-radius: 20px !important;
-            padding: 4px 16px !important; /* Shrinks the internal padding to make it less intrusive */
+            box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.4) !important;
+            border-radius: 30px !important;
+            padding: 12px 30px !important; /* BIG padding restored! */
             border: 2px solid var(--primary-color) !important;
+            font-size: 18px !important; /* Noticeable text size */
+            font-weight: bold !important;
         }
     </style>
 """, unsafe_allow_html=True)
