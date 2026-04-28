@@ -157,7 +157,7 @@ if 'Tab Description' in df_config.columns:
     if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
         st.markdown(f"<p style='color: #444444; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
 
-# --- REVERTED & UPDATED CSS ---
+# --- UPDATED: CSS FOR TEXT BOX BORDERS AND VISIBLE PROGRESS TRACK ---
 st.markdown("""
     <style>
         /* 1. Main page background */
@@ -183,24 +183,34 @@ st.markdown("""
             padding: 30px !important;
         }
 
-        /* 4. Input Field Focus Glow & Color Change */
+        /* 4. DEFAULT TEXT BOX BORDERS (Makes them visible!) */
+        div[data-baseweb="input"], 
+        div[data-baseweb="textarea"],
+        div[data-baseweb="select"] {
+            border: 1px solid #e0e6ed !important; 
+            border-radius: 6px !important;
+            transition: all 0.2s ease-in-out;
+        }
+
+        /* 5. Input Field Focus Glow */
         div[data-baseweb="input"]:focus-within, 
         div[data-baseweb="textarea"]:focus-within,
         div[data-baseweb="select"]:focus-within {
             border-color: #1C83E1 !important;
             box-shadow: 0 0 8px rgba(28, 131, 225, 0.3) !important;
-            transition: all 0.2s ease-in-out;
         }
+        
+        /* 6. Text Box Background Colors (White when empty, gray when filled) */
         div[data-baseweb="input"] input:placeholder-shown,
         div[data-baseweb="textarea"] textarea:placeholder-shown {
             background-color: #ffffff !important;
         }
         div[data-baseweb="input"] input:not(:placeholder-shown),
         div[data-baseweb="textarea"] textarea:not(:placeholder-shown) {
-            background-color: #e2e6ea !important;
+            background-color: #f0f2f6 !important;
         }
         
-        /* 5. Blue Save Buttons */
+        /* 7. Blue Save Buttons */
         [data-testid="stFormSubmitButton"] button {
             background-color: #1C83E1 !important;
             color: #ffffff !important;
@@ -211,14 +221,13 @@ st.markdown("""
             color: #ffffff !important;
         }
 
-        /* --- NEW: PROGRESS BAR COLORS --- */
+        /* --- 8. PROGRESS BAR COLORS --- */
         [data-testid="stProgressBar"] > div {
-            background-color: #EAF4FF !important; /* Pale blue track */
+            background-color: #e0e6ed !important; /* Noticeable gray track */
         }
         [data-testid="stProgressBar"] > div > div {
             background-color: #1C83E1 !important; /* Blue fill */
         }
-
     </style>
 """, unsafe_allow_html=True)
 
