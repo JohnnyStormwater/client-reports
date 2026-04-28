@@ -219,10 +219,6 @@ st.markdown("""
             background-color: #1C83E1 !important; /* Blue fill */
         }
 
-        /* --- NEW: PALE BLUE RADIO CIRCLES --- */
-        [data-testid="stSidebar"] [data-baseweb="radio"] > div:first-child {
-            background-color: #EAF4FF !important; /* Makes the empty circles pale blue */
-        }
     </style>
 """, unsafe_allow_html=True)
 
