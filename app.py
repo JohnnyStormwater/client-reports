@@ -88,52 +88,66 @@ else:
 
 st.sidebar.title(f"{sidebar_icon} {current_client_name}")
 st.sidebar.markdown("---")
+
 tabs = df_config['Tab'].unique()
 selected_tab = st.sidebar.radio("Navigate", tabs)
 
-# 7. DYNAMIC FORM GENERATOR
+# --- NEW: PROGRESS TRACKER LOGIC ---
 tab_questions = df_config[df_config['Tab'] == selected_tab]
 
-# --- BULLETPROOF CSS FOR STICKY HEADER ---
-# Using !important forces Streamlit to respect our sticky command no matter what.
+# Filter out subheaders and read-only text so they don't count as "unanswered" questions
+actionable_questions = tab_questions[~tab_questions['Type'].isin(['subheader', 'readonly'])]
+total_questions = len(actionable_questions)
+filled_questions = 0
+
+for index, row in actionable_questions.iterrows():
+    col_name = row['Column Name']
+    if col_name in df_data.columns:
+        val = format_cell_value(df_data.at[user_row_index, col_name])
+        # If the cell is not empty, count it as completed!
+        if val != "":
+            filled_questions += 1
+
+# Calculate the percentage (safeguard against dividing by zero)
+progress_percent = int((filled_questions / total_questions) * 100) if total_questions > 0 else 100
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 📍 Currently Editing:")
+st.sidebar.info(f"**{selected_tab}**")
+
+# Injecting the visual progress bar right into the sidebar
+st.sidebar.markdown("### 📊 Section Progress:")
+st.sidebar.progress(progress_percent, text=f"{filled_questions} of {total_questions} answered")
+
+
+# 7. DYNAMIC FORM GENERATOR
+# --- UPDATED: CSS FOR TOP-RIGHT FLOATING BUTTON ---
 st.markdown("""
     <style>
-        [data-testid="stForm"] div[data-testid="stHorizontalBlock"]:first-of-type {
-            position: -webkit-sticky !important;
-            position: sticky !important;
-            top: 50px !important; 
-            background-color: var(--background-color) !important;
-            z-index: 999 !important;
-            padding-bottom: 10px !important;
-            padding-top: 10px !important;
-            border-bottom: 2px solid var(--secondary-background-color) !important;
-            margin-bottom: 20px !important;
-            margin-top: -15px !important;
+        [data-testid="stFormSubmitButton"] {
+            position: fixed !important;
+            top: 70px !important; /* Pinned to the top, safely below Streamlit's nav bar */
+            right: 40px !important;
+            z-index: 9999 !important;
+        }
+        [data-testid="stFormSubmitButton"] button {
+            box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.4) !important;
+            border-radius: 30px !important;
+            padding: 10px 25px !important;
+            border: 2px solid var(--primary-color) !important;
         }
     </style>
 """, unsafe_allow_html=True)
 
 with st.form(key='dynamic_form'):
     
-    # --- STICKY HEADER, SUBHEADER, & SAVE BUTTON ROW ---
-    col1, col2 = st.columns([3, 1])
-    
-    with col1:
-        # 1. The Main Title
-        st.markdown(f"<h2 style='margin-top: 0px; padding-top: 0px;'>{selected_tab}</h2>", unsafe_allow_html=True)
+    st.markdown(f"<h2 style='margin-top: 0px; padding-top: 0px;'>{selected_tab}</h2>", unsafe_allow_html=True)
         
-        # 2. The Subheader Description (Moved inside the sticky block!)
-        if 'Tab Description' in df_config.columns:
-            descriptions = tab_questions['Tab Description'].dropna().unique()
-            if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
-                # Using a negative top margin to pull it up snug against the main title
-                st.markdown(f"<p style='color: var(--text-color); opacity: 0.8; margin-top: -15px; margin-bottom: 0px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
+    if 'Tab Description' in df_config.columns:
+        descriptions = tab_questions['Tab Description'].dropna().unique()
+        if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
+            st.markdown(f"<p style='color: var(--text-color); opacity: 0.8; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
 
-    with col2:
-        # A tiny spacer so the button aligns nicely with the multi-line text block on the left
-        st.write("") 
-        submitted = st.form_submit_button("💾 Save Progress", use_container_width=True)
-    
     user_responses = {}
     is_first_item = True  
 
@@ -270,6 +284,8 @@ with st.form(key='dynamic_form'):
         st.write("")
     
     # 8. SUBMISSION LOGIC
+    submitted = st.form_submit_button("💾 Save Progress")
+    
     if submitted:
         headers_list = list(headers)
         
