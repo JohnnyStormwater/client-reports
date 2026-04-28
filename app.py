@@ -136,7 +136,6 @@ st.sidebar.progress(progress_percent, text=f"{filled_questions} of {total_questi
 
 # 7. DYNAMIC FORM GENERATOR
 
-# Clean Header OUTSIDE the form box
 st.markdown(f"<h1 style='margin-top: 0px; padding-top: 0px;'>{selected_tab}</h1>", unsafe_allow_html=True)
     
 if 'Tab Description' in df_config.columns:
@@ -144,25 +143,25 @@ if 'Tab Description' in df_config.columns:
     if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
         st.markdown(f"<p style='color: var(--text-color); opacity: 0.8; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
 
-# --- UPDATED: CSS FOR FULL-WIDTH STICKY BUTTON ---
+# --- UPDATED: CSS FOR PERFECTLY ALIGNED STICKY BUTTON ---
 st.markdown("""
     <style>
-        /* Target the container holding the button to make it sticky */
+        /* Target the container to make it sticky, creating a solid background strip */
         [data-testid="stFormSubmitButton"] {
             position: sticky !important;
-            top: 55px !important; /* Locks safely under the Streamlit header */
+            top: 55px !important; /* Safely clears Streamlit's top menu bar */
             z-index: 9999 !important;
-            background-color: var(--background-color) !important; /* Adds a solid backdrop so text doesn't show through */
-            padding-top: 10px !important;
-            padding-bottom: 10px !important;
+            background-color: var(--background-color) !important;
+            padding-top: 15px !important;
+            padding-bottom: 15px !important;
             margin-top: -10px !important;
         }
-        /* Target the button itself to stretch it and make it skinny */
+        /* Target the button itself to stretch perfectly across the form container */
         [data-testid="stFormSubmitButton"] button {
-            width: 100% !important; /* Stretches exactly to the white borders of the form! */
+            width: 100% !important; /* Will perfectly align with the plant emoji header above it */
             box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2) !important;
             border-radius: 8px !important;
-            padding: 8px 0px !important; /* Skinny vertically */
+            padding: 12px 0px !important; /* Thick vertically */
             border: 2px solid var(--primary-color) !important;
             font-size: 16px !important;
             font-weight: bold !important;
@@ -172,7 +171,7 @@ st.markdown("""
 
 with st.form(key='dynamic_form'):
 
-    # --- MOVED: The button is now at the TOP of the form so it spans the width and sticks immediately ---
+    # This sits at the very top of the form, allowing the CSS to grab it and make it sticky
     submitted = st.form_submit_button("💾 Save Progress")
 
     user_responses = {}
@@ -311,7 +310,6 @@ with st.form(key='dynamic_form'):
         st.write("")
     
     # 8. SUBMISSION LOGIC
-    # Notice we don't have a duplicate button here anymore!
     if submitted:
         headers_list = list(headers)
         
