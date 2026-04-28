@@ -118,9 +118,18 @@ else:
 
 st.sidebar.title(f"{sidebar_icon} {current_client_name}")
 
-st.sidebar.markdown("**🏆 Overall Progress:**")
-st.sidebar.progress(overall_percent, text=f"{filled_overall_questions} of {total_overall_questions} total answered")
-st.sidebar.markdown("---")
+# --- UPDATED: BULLETPROOF HTML OVERALL PROGRESS BAR ---
+overall_progress_html = f"""
+<div style="background-color: #eef6fc; border: 1px solid #cde0f5; border-radius: 8px; padding: 15px; margin-bottom: 25px;">
+    <div style="font-weight: bold; color: #1C83E1; margin-bottom: 5px;">🏆 Overall Progress:</div>
+    <div style="font-size: 13px; color: #444444; margin-bottom: 10px;">{filled_overall_questions} of {total_overall_questions} total answered</div>
+    <div style="background-color: #d0d7e2; border-radius: 10px; width: 100%; height: 10px;">
+        <div style="background-color: #1C83E1; border-radius: 10px; height: 100%; width: {overall_percent}%;"></div>
+    </div>
+</div>
+"""
+st.sidebar.markdown(overall_progress_html, unsafe_allow_html=True)
+
 
 selected_tab = st.sidebar.radio("Navigate", tabs, format_func=lambda x: tab_display_dict[x])
 
@@ -144,8 +153,18 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### 📍 Currently Editing:")
 st.sidebar.info(f"**{selected_tab}**")
 
-st.sidebar.markdown("**📊 Section Progress:**")
-st.sidebar.progress(progress_percent, text=f"{filled_questions} of {total_questions} answered")
+
+# --- UPDATED: BULLETPROOF HTML SECTION PROGRESS BAR ---
+section_progress_html = f"""
+<div style="background-color: #eef6fc; border: 1px solid #cde0f5; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+    <div style="font-weight: bold; color: #1C83E1; margin-bottom: 5px;">📊 Section Progress:</div>
+    <div style="font-size: 13px; color: #444444; margin-bottom: 10px;">{filled_questions} of {total_questions} answered</div>
+    <div style="background-color: #d0d7e2; border-radius: 10px; width: 100%; height: 10px;">
+        <div style="background-color: #1C83E1; border-radius: 10px; height: 100%; width: {progress_percent}%;"></div>
+    </div>
+</div>
+"""
+st.sidebar.markdown(section_progress_html, unsafe_allow_html=True)
 
 
 # 7. DYNAMIC FORM GENERATOR
@@ -157,7 +176,7 @@ if 'Tab Description' in df_config.columns:
     if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
         st.markdown(f"<p style='color: #444444; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
 
-# --- UPDATED: BULLETPROOF CSS FOR PROGRESS BARS & BORDERS ---
+# --- CSS (Progress bar rules removed since we use pure HTML now!) ---
 st.markdown("""
     <style>
         /* 1. Main page background */
@@ -183,7 +202,7 @@ st.markdown("""
             padding: 30px !important;
         }
 
-        /* 4. DEFAULT TEXT BOX BORDERS (Defining boundaries) */
+        /* 4. DEFAULT TEXT BOX BORDERS */
         div[data-baseweb="input"], 
         div[data-baseweb="textarea"],
         div[data-baseweb="select"] {
@@ -192,7 +211,7 @@ st.markdown("""
             transition: all 0.2s ease-in-out;
         }
 
-        /* 5. Input Field Focus Glow (Preserving Blue Glow!) */
+        /* 5. Input Field Focus Glow */
         div[data-baseweb="input"]:focus-within, 
         div[data-baseweb="textarea"]:focus-within,
         div[data-baseweb="select"]:focus-within {
@@ -200,7 +219,7 @@ st.markdown("""
             box-shadow: 0 0 8px rgba(28, 131, 225, 0.3) !important;
         }
         
-        /* 6. Text Box Background Colors (Pure white when empty, gray when filled) */
+        /* 6. Text Box Background Colors */
         div[data-baseweb="input"] input:placeholder-shown,
         div[data-baseweb="textarea"] textarea:placeholder-shown {
             background-color: #ffffff !important;
@@ -219,27 +238,6 @@ st.markdown("""
         [data-testid="stFormSubmitButton"] button:hover {
             background-color: #1565C0 !important;
             color: #ffffff !important;
-        }
-
-        /* --- 8. CORRECTED: DEFINED CARD BORDERS AROUND PROGRESS BARS --- */
-        /* Targets the main containers for Overall and Section progress in the sidebar */
-        [data-testid="stProgressBar"] {
-            background-color: #f0f2f6 !important; /* Visible gray defined background */
-            border: 1px solid #e0e6ed !important; /* Boundary border (same as form/sidebar separators) */
-            border-radius: 10px !important;
-            padding: 15px !important; /* Internal breathing room */
-            margin-bottom: 15px !important; /* Space between bars */
-            box-shadow: inset 0px 1px 3px rgba(0, 0, 0, 0.05) !important; /* Faint internal depth */
-        }
-        
-        /* Ensure track itself uses the same slate-gray as the track container */
-        [data-testid="stProgressBar"] > div:last-child {
-            background-color: #f0f2f6 !important;
-        }
-        
-        /* Targets the blue fill inside */
-        [data-testid="stProgressBar"] > div:last-child > div {
-            background-color: #1C83E1 !important; 
         }
     </style>
 """, unsafe_allow_html=True)
