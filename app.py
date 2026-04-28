@@ -93,7 +93,7 @@ selected_tab = st.sidebar.radio("Navigate", tabs)
 
 # 7. DYNAMIC FORM GENERATOR
 
-# Section Description (Prints right above the form box)
+# Section Description
 tab_questions = df_config[df_config['Tab'] == selected_tab]
 
 if 'Tab Description' in df_config.columns:
@@ -102,32 +102,32 @@ if 'Tab Description' in df_config.columns:
         st.markdown(str(descriptions[0]))
         st.write("") 
 
-# --- NEW: CSS FOR STICKY HEADER ---
-# This CSS dynamically uses Streamlit's built-in background colors so it works perfectly in Dark OR Light mode!
+# --- FIXED: CSS FOR TRUE STICKY HEADER ---
 st.markdown("""
     <style>
-        [data-testid="stForm"] > div:nth-child(1) {
+        /* Specifically target the FIRST horizontal column block inside the form */
+        [data-testid="stForm"] div[data-testid="stHorizontalBlock"]:first-of-type {
+            position: -webkit-sticky;
             position: sticky;
-            top: 50px; 
-            background-color: var(--background-color);
+            top: 60px; /* Streamlit's default top header is 60px, so this tucks perfectly beneath it! */
+            background-color: var(--background-color); 
             z-index: 999;
-            padding-bottom: 15px;
-            padding-top: 10px;
+            padding-top: 15px;
+            padding-bottom: 10px;
             border-bottom: 2px solid var(--secondary-background-color);
-            margin-bottom: 20px;
+            margin-top: -15px;
         }
     </style>
 """, unsafe_allow_html=True)
 
 with st.form(key='dynamic_form'):
     
-    # --- NEW: STICKY HEADER & SAVE BUTTON ROW ---
-    # This must remain the absolute first thing inside the st.form block for the CSS to target it properly!
+    # --- STICKY HEADER & SAVE BUTTON ROW ---
     col1, col2 = st.columns([3, 1])
     with col1:
         st.markdown(f"<h2 style='margin-top: 0px; padding-top: 0px;'>{selected_tab}</h2>", unsafe_allow_html=True)
     with col2:
-        st.write("") # Tiny invisible nudge to vertically align the button with the large text
+        st.write("") 
         submitted = st.form_submit_button("💾 Save Progress", use_container_width=True)
     
     user_responses = {}
@@ -266,7 +266,6 @@ with st.form(key='dynamic_form'):
         st.write("")
     
     # 8. SUBMISSION LOGIC
-    # Notice we don't have bottom or top buttons here anymore, it just listens to the sticky one!
     if submitted:
         headers_list = list(headers)
         
