@@ -136,32 +136,49 @@ st.sidebar.progress(progress_percent, text=f"{filled_questions} of {total_questi
 
 # 7. DYNAMIC FORM GENERATOR
 
-# --- UPDATED: STICKY CSS TARGETING THE BUTTON CONTAINER ---
+# --- THE "INVISIBLE FORM" CSS TRICK ---
 st.markdown("""
     <style>
-        /* Creates the solid, sticky background for the button */
-        [data-testid="stFormSubmitButton"] {
+        /* 1. Completely remove the gray border and background from the form */
+        [data-testid="stForm"] {
+            border: none !important;
+            padding: 0px !important;
+            background-color: transparent !important;
+        }
+        
+        /* 2. Target the exact container holding the Save Button and freeze it */
+        [data-testid="stForm"] > div:first-child {
             position: sticky !important;
             top: 55px !important; /* Clears Streamlit's top menu */
             z-index: 9999 !important;
             background-color: var(--background-color) !important;
-            padding-top: 15px !important;
-            padding-bottom: 15px !important;
-            margin-top: -15px !important;
+            padding-top: 10px !important;
+            padding-bottom: 10px !important;
+            margin-bottom: 15px !important;
             border-bottom: 1px solid var(--secondary-background-color) !important;
+        }
+        
+        /* 3. Make the button itself large and full-width */
+        [data-testid="stFormSubmitButton"] button {
+            width: 100% !important; 
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2) !important;
+            border-radius: 8px !important;
+            padding: 12px 0px !important;
+            border: 2px solid var(--primary-color) !important;
+            font-size: 16px !important;
+            font-weight: bold !important;
         }
     </style>
 """, unsafe_allow_html=True)
 
 with st.form(key='dynamic_form'):
 
-    # 1. THE SAVE BUTTON FIRST
-    # use_container_width=True forces it to stretch to the form's borders perfectly!
-    submitted = st.form_submit_button("💾 Save Progress", use_container_width=True)
+    # The Save Button is physically first so it gets frozen by the CSS!
+    submitted = st.form_submit_button("💾 Save Progress")
 
-    # 2. THE HEADER SECOND
-    # Placed right beneath the button so it aligns with the left edge of the button
-    st.markdown(f"<h1 style='margin-top: 5px; padding-top: 0px;'>{selected_tab}</h1>", unsafe_allow_html=True)
+    # The Header and Subheader are now technically inside the form, but because 
+    # the form is invisible, it looks like a standard page header!
+    st.markdown(f"<h1 style='margin-top: 0px; padding-top: 0px;'>{selected_tab}</h1>", unsafe_allow_html=True)
         
     if 'Tab Description' in df_config.columns:
         descriptions = tab_questions['Tab Description'].dropna().unique()
