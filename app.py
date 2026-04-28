@@ -80,17 +80,36 @@ if user_row_index.empty:
 
 user_row_index = user_row_index[0] 
 
-# --- OVERALL PROGRESS CALCULATOR ---
+
+# --- NEW: GLOBAL PROGRESS & DYNAMIC SIDEBAR LABELS ---
+tab_display_dict = {}
 all_actionable_questions = df_config[~df_config['Type'].isin(['subheader', 'readonly'])]
 total_overall_questions = len(all_actionable_questions)
 filled_overall_questions = 0
 
-for idx, row in all_actionable_questions.iterrows():
-    col_name = row['Column Name']
-    if col_name in df_data.columns:
-        val = format_cell_value(df_data.at[user_row_index, col_name])
-        if val != "":
-            filled_overall_questions += 1
+tabs = df_config['Tab'].unique()
+
+# Pre-scan every tab to calculate completion status for the sidebar
+for t in tabs:
+    t_questions = all_actionable_questions[all_actionable_questions['Tab'] == t]
+    t_total = len(t_questions)
+    t_filled = 0
+    
+    for idx, row in t_questions.iterrows():
+        col_name = row['Column Name']
+        if col_name in df_data.columns:
+            val = format_cell_value(df_data.at[user_row_index, col_name])
+            if val != "":
+                t_filled += 1
+                filled_overall_questions += 1
+    
+    # Assign the dynamic icons based on completion!
+    if t_total > 0 and t_filled == t_total:
+        tab_display_dict[t] = f"✅ {t}"  # 100% Done
+    elif t_filled > 0:
+        tab_display_dict[t] = f"🔄 {t}"  # In Progress
+    else:
+        tab_display_dict[t] = t         # Not Started
 
 overall_percent = int((filled_overall_questions / total_overall_questions) * 100) if total_overall_questions > 0 else 100
 
@@ -107,8 +126,8 @@ st.sidebar.markdown("**🏆 Overall Progress:**")
 st.sidebar.progress(overall_percent, text=f"{filled_overall_questions} of {total_overall_questions} total answered")
 st.sidebar.markdown("---")
 
-tabs = df_config['Tab'].unique()
-selected_tab = st.sidebar.radio("Navigate", tabs)
+# The format_func connects the raw tab name to our new dictionary with the ✅ emojis!
+selected_tab = st.sidebar.radio("Navigate", tabs, format_func=lambda x: tab_display_dict[x])
 
 # --- SECTION PROGRESS TRACKER LOGIC ---
 tab_questions = df_config[df_config['Tab'] == selected_tab]
@@ -143,10 +162,24 @@ if 'Tab Description' in df_config.columns:
     if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
         st.markdown(f"<p style='color: var(--text-color); opacity: 0.8; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
 
+# --- NEW: CSS FOR INPUT FOCUS GLOW ---
+st.markdown("""
+    <style>
+        /* Adds a subtle glowing highlight when the user clicks into a text box to type */
+        div[data-baseweb="input"]:focus-within, 
+        div[data-baseweb="textarea"]:focus-within,
+        div[data-baseweb="select"]:focus-within {
+            border-color: var(--primary-color) !important;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.15) !important; /* Soft glow */
+            background-color: rgba(255, 255, 255, 0.03) !important; /* Slight tint difference */
+            transition: all 0.2s ease-in-out;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
 with st.form(key='dynamic_form'):
 
-    # --- TOP SAVE BUTTON (Now Full Width!) ---
+    # --- TOP SAVE BUTTON (Full Width) ---
     submitted_top = st.form_submit_button("💾 Save Progress", key="save_top", use_container_width=True)
 
     user_responses = {}
@@ -284,7 +317,7 @@ with st.form(key='dynamic_form'):
         is_first_item = False 
         st.write("")
     
-    # --- BOTTOM SAVE BUTTON (Now Full Width!) ---
+    # --- BOTTOM SAVE BUTTON (Full Width) ---
     st.write("")
     submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom", use_container_width=True)
     
