@@ -81,7 +81,7 @@ if user_row_index.empty:
 user_row_index = user_row_index[0] 
 
 
-# --- NEW: GLOBAL PROGRESS & DYNAMIC SIDEBAR LABELS ---
+# --- GLOBAL PROGRESS & DYNAMIC SIDEBAR LABELS ---
 tab_display_dict = {}
 all_actionable_questions = df_config[~df_config['Type'].isin(['subheader', 'readonly'])]
 total_overall_questions = len(all_actionable_questions)
@@ -89,7 +89,6 @@ filled_overall_questions = 0
 
 tabs = df_config['Tab'].unique()
 
-# Pre-scan every tab to calculate completion status for the sidebar
 for t in tabs:
     t_questions = all_actionable_questions[all_actionable_questions['Tab'] == t]
     t_total = len(t_questions)
@@ -103,13 +102,11 @@ for t in tabs:
                 t_filled += 1
                 filled_overall_questions += 1
     
-    # Assign the dynamic icons based on completion!
+    # --- UPDATED: Only shows the checkmark when 100% complete! ---
     if t_total > 0 and t_filled == t_total:
-        tab_display_dict[t] = f"✅ {t}"  # 100% Done
-    elif t_filled > 0:
-        tab_display_dict[t] = f"🔄 {t}"  # In Progress
+        tab_display_dict[t] = f"✅ {t}"  
     else:
-        tab_display_dict[t] = t         # Not Started
+        tab_display_dict[t] = t         
 
 overall_percent = int((filled_overall_questions / total_overall_questions) * 100) if total_overall_questions > 0 else 100
 
@@ -126,7 +123,6 @@ st.sidebar.markdown("**🏆 Overall Progress:**")
 st.sidebar.progress(overall_percent, text=f"{filled_overall_questions} of {total_overall_questions} total answered")
 st.sidebar.markdown("---")
 
-# The format_func connects the raw tab name to our new dictionary with the ✅ emojis!
 selected_tab = st.sidebar.radio("Navigate", tabs, format_func=lambda x: tab_display_dict[x])
 
 # --- SECTION PROGRESS TRACKER LOGIC ---
@@ -162,24 +158,35 @@ if 'Tab Description' in df_config.columns:
     if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
         st.markdown(f"<p style='color: var(--text-color); opacity: 0.8; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
 
-# --- NEW: CSS FOR INPUT FOCUS GLOW ---
+# --- NEW: CSS FOR FOCUS GLOW & INSTANT COLOR CHANGE ---
 st.markdown("""
     <style>
-        /* Adds a subtle glowing highlight when the user clicks into a text box to type */
+        /* The glowing outline when a user clicks into a box */
         div[data-baseweb="input"]:focus-within, 
         div[data-baseweb="textarea"]:focus-within,
         div[data-baseweb="select"]:focus-within {
             border-color: var(--primary-color) !important;
-            box-shadow: 0 0 8px rgba(255, 255, 255, 0.15) !important; /* Soft glow */
-            background-color: rgba(255, 255, 255, 0.03) !important; /* Slight tint difference */
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.15) !important;
             transition: all 0.2s ease-in-out;
+        }
+        
+        /* MAGIC TRICK: If the box is empty (showing the placeholder space), make it the standard background */
+        div[data-baseweb="input"] input:placeholder-shown,
+        div[data-baseweb="textarea"] textarea:placeholder-shown {
+            background-color: var(--background-color) !important;
+        }
+
+        /* MAGIC TRICK: If the box has text typed in it (placeholder is hidden), turn it gray! */
+        div[data-baseweb="input"] input:not(:placeholder-shown),
+        div[data-baseweb="textarea"] textarea:not(:placeholder-shown) {
+            background-color: var(--secondary-background-color) !important;
         }
     </style>
 """, unsafe_allow_html=True)
 
 with st.form(key='dynamic_form'):
 
-    # --- TOP SAVE BUTTON (Full Width) ---
+    # --- TOP SAVE BUTTON ---
     submitted_top = st.form_submit_button("💾 Save Progress", key="save_top", use_container_width=True)
 
     user_responses = {}
@@ -265,11 +272,12 @@ with st.form(key='dynamic_form'):
                         st.markdown(f"<div style='color: #a3a8b8; font-size: 0.85em; margin-top: -5px; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha_text}</div>", unsafe_allow_html=True)
 
         # --- 3. RENDER THE WIDGET ---
+        # Notice we added placeholder=" " to the inputs so the CSS trick can target them!
         if input_type == 'text':
-             user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, key=col_name)
+             user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
         
         elif input_type == 'textarea':
-             user_responses[col_name] = st.text_area(label="hidden_label", label_visibility="collapsed", value=clean_current_val, key=col_name)
+             user_responses[col_name] = st.text_area(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
              
         elif input_type == 'readonly':
              display_text = clean_current_val
@@ -298,26 +306,30 @@ with st.form(key='dynamic_form'):
             user_responses[col_name] = st.selectbox(label="hidden_label", label_visibility="collapsed", options=options, index=current_index, key=col_name)
         
         elif input_type == 'number':
+            # Updated to allow a truly empty number field so it can change colors too!
             try:
-                num_val = float(clean_current_val)
-                if num_val.is_integer():
-                    num_val = int(num_val)
+                if clean_current_val == "":
+                    num_val = None
+                else:
+                    num_val = float(clean_current_val)
+                    if num_val.is_integer():
+                        num_val = int(num_val)
             except ValueError:
-                num_val = 0
+                num_val = None
                 
-            user_responses[col_name] = st.number_input(label="hidden_label", label_visibility="collapsed", value=num_val, key=col_name)
+            user_responses[col_name] = st.number_input(label="hidden_label", label_visibility="collapsed", value=num_val, placeholder=" ", key=col_name)
         
         elif input_type == 'checkbox':
             is_checked = True if str(clean_current_val).lower() == 'true' else False
             user_responses[col_name] = st.checkbox(label="Check if Yes", value=is_checked, key=col_name)
         
         elif input_type == 'date':
-             user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, key=col_name)
+             user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
         
         is_first_item = False 
         st.write("")
     
-    # --- BOTTOM SAVE BUTTON (Full Width) ---
+    # --- BOTTOM SAVE BUTTON ---
     st.write("")
     submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom", use_container_width=True)
     
