@@ -137,15 +137,21 @@ else:
 
 st.sidebar.title(f"{sidebar_icon} {current_client_name}")
 
-# --- NEW: CREATE A CONTAINER TO HOLD THE TOP SPOT FOR SECTION PROGRESS ---
+# --- NEW: DIVIDER UNDER TITLE ---
+st.sidebar.markdown("---")
+
+# --- CREATE A CONTAINER TO HOLD THE TOP SPOT FOR SECTION PROGRESS ---
 top_sidebar_placeholder = st.sidebar.container()
+
+# --- NEW: DIVIDER UNDER SECTION PROGRESS ---
+st.sidebar.markdown("---")
 
 # Render Navigation Radio
 selected_tab = st.sidebar.radio("Navigate", tabs, format_func=lambda x: tab_display_dict[x])
 
 st.sidebar.markdown("---")
 
-# --- HTML OVERALL PROGRESS BAR (Moved to the bottom!) ---
+# --- HTML OVERALL PROGRESS BAR (At the bottom!) ---
 overall_progress_html = f"""
 <div style="background-color: #eef6fc; border: 1px solid #cde0f5; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
     <div style="font-weight: bold; color: #1C83E1; margin-bottom: 5px;">🏆 Overall Progress:</div>
@@ -180,7 +186,7 @@ top_sidebar_placeholder.markdown("### 📍 Currently Editing:")
 top_sidebar_placeholder.info(f"**{selected_tab}**")
 
 section_progress_html = f"""
-<div style="background-color: #eef6fc; border: 1px solid #cde0f5; border-radius: 8px; padding: 15px; margin-bottom: 25px;">
+<div style="background-color: #eef6fc; border: 1px solid #cde0f5; border-radius: 8px; padding: 15px; margin-bottom: 10px;">
     <div style="font-weight: bold; color: #1C83E1; margin-bottom: 5px;">📊 Section Progress:</div>
     <div style="font-size: 13px; color: #444444; margin-bottom: 10px;">{filled_questions} of {total_questions} answered</div>
     <div style="background-color: #d0d7e2; border-radius: 10px; width: 100%; height: 10px;">
