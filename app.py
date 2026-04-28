@@ -38,10 +38,10 @@ def format_currency(val_str):
 # 1. SETUP & CONNECTION
 st.set_page_config(page_title="Client Reporting Portal", layout="wide")
 
-# --- NEW: CELEBRATION TRIGGER ---
+# --- CELEBRATION TRIGGER ---
 # This checks if the user just completed a section on the previous screen refresh
 if st.session_state.get('show_celebration', False):
-    st.balloons()
+    st.snow()  # You can change this back to st.balloons() if you prefer!
     st.session_state['show_celebration'] = False
 
 conn = st.connection("gsheets", type=GSheetsConnection)
@@ -400,14 +400,14 @@ with st.form(key='dynamic_form'):
     if submitted_top or submitted_bottom:
         headers_list = list(headers)
         
-        # --- NEW: Check if they just hit 100% BEFORE saving to session state ---
+        # --- Check if they just hit 100% BEFORE saving to session state ---
         new_filled_questions = 0
         for index, row in actionable_questions.iterrows():
             col_name = row['Column Name']
             if format_cell_value(user_responses.get(col_name, "")) != "":
                 new_filled_questions += 1
                 
-        # If they just crossed the finish line for this section, queue the balloons!
+        # If they just crossed the finish line for this section, queue the celebration!
         if new_filled_questions == total_questions and filled_questions < total_questions and total_questions > 0:
             st.session_state['show_celebration'] = True
         
@@ -418,7 +418,25 @@ with st.form(key='dynamic_form'):
                 col_idx = headers_list.index(col)
                 df_raw.iat[user_row_index + 4, col_idx] = new_val
         
-        df_raw.columns = df_raw.iloc[0]
+        # --- FIXED: DEDUPLICATE COLUMN NAMES TO PREVENT THE ATTRIBUTEERROR ---
+        new_cols = []
+        seen = set()
+        
+        for c in df_raw.iloc[0]:
+            # Convert to string and clean up 'nan' or empty values
+            c_str = str(c) if pd.notna(c) else ""
+            if c_str.strip() == "" or c_str.lower() == "nan":
+                c_str = ""
+                
+            # If the column name already exists (like duplicate empty columns), 
+            # add an invisible space to make it unique so Pandas doesn't crash!
+            while c_str in seen:
+                c_str += " "
+                
+            seen.add(c_str)
+            new_cols.append(c_str)
+            
+        df_raw.columns = new_cols
         df_to_save = df_raw.iloc[1:].copy()
         
         conn.update(worksheet=f"{user_county}_Data", data=df_to_save)
