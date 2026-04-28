@@ -102,7 +102,6 @@ for t in tabs:
                 t_filled += 1
                 filled_overall_questions += 1
     
-    # --- UPDATED: Only shows the checkmark when 100% complete! ---
     if t_total > 0 and t_filled == t_total:
         tab_display_dict[t] = f"✅ {t}"  
     else:
@@ -158,7 +157,7 @@ if 'Tab Description' in df_config.columns:
     if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
         st.markdown(f"<p style='color: var(--text-color); opacity: 0.8; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
 
-# --- NEW: CSS FOR FOCUS GLOW & INSTANT COLOR CHANGE ---
+# --- UPDATED: CSS FOR NOTICEABLE COLOR CHANGES ---
 st.markdown("""
     <style>
         /* The glowing outline when a user clicks into a box */
@@ -166,28 +165,28 @@ st.markdown("""
         div[data-baseweb="textarea"]:focus-within,
         div[data-baseweb="select"]:focus-within {
             border-color: var(--primary-color) !important;
-            box-shadow: 0 0 8px rgba(255, 255, 255, 0.15) !important;
+            box-shadow: 0 0 8px rgba(28, 131, 225, 0.3) !important; /* Soft blue glow */
             transition: all 0.2s ease-in-out;
         }
         
-        /* MAGIC TRICK: If the box is empty (showing the placeholder space), make it the standard background */
+        /* If the box is empty (showing the placeholder space), make it pure white */
         div[data-baseweb="input"] input:placeholder-shown,
         div[data-baseweb="textarea"] textarea:placeholder-shown {
-            background-color: var(--background-color) !important;
+            background-color: #ffffff !important;
         }
 
-        /* MAGIC TRICK: If the box has text typed in it (placeholder is hidden), turn it gray! */
+        /* If the box has text typed in it (placeholder hidden), turn it a noticeable gray */
         div[data-baseweb="input"] input:not(:placeholder-shown),
         div[data-baseweb="textarea"] textarea:not(:placeholder-shown) {
-            background-color: var(--secondary-background-color) !important;
+            background-color: #e2e6ea !important;
         }
     </style>
 """, unsafe_allow_html=True)
 
 with st.form(key='dynamic_form'):
 
-    # --- TOP SAVE BUTTON ---
-    submitted_top = st.form_submit_button("💾 Save Progress", key="save_top", use_container_width=True)
+    # --- TOP SAVE BUTTON (Now 'primary' so it uses your blue theme color!) ---
+    submitted_top = st.form_submit_button("💾 Save Progress", key="save_top", use_container_width=True, type="primary")
 
     user_responses = {}
     is_first_item = True  
@@ -235,6 +234,7 @@ with st.form(key='dynamic_form'):
             st.markdown("  \n\n".join(formatted_parts))
 
         # --- 2. CONTEXTUAL DATA (LAST YEAR & JLHA) ---
+        # UPDATED: Changed #a3a8b8 to #666666 for proper contrast in Light Mode
         if 'Previous_Col' in row and pd.notna(row['Previous_Col']):
             prev_col_name = str(row['Previous_Col']).strip()
             
@@ -249,9 +249,9 @@ with st.form(key='dynamic_form'):
                     
                     if is_financial:
                         display_prev = format_currency(clean_prev_val)
-                        st.markdown(f"<div style='color: #a3a8b8; font-size: 0.85em; margin-top: -10px; margin-bottom: 5px;'>💰 <b>Last Year's Total:</b>{separator}{display_prev}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='color: #666666; font-size: 0.85em; margin-top: -10px; margin-bottom: 5px;'>💰 <b>Last Year's Total:</b>{separator}{display_prev}</div>", unsafe_allow_html=True)
                     else:
-                        st.markdown(f"<div style='color: #a3a8b8; font-size: 0.85em; margin-top: -10px; margin-bottom: 5px;'>🗓️ <b>Last year's response:</b>{separator}{display_prev_text}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='color: #666666; font-size: 0.85em; margin-top: -10px; margin-bottom: 5px;'>🗓️ <b>Last year's response:</b>{separator}{display_prev_text}</div>", unsafe_allow_html=True)
 
         if 'JLHA_Col' in df_config.columns and 'JLHA_Col' in row and pd.notna(row['JLHA_Col']):
             jlha_col_name = str(row['JLHA_Col']).strip()
@@ -267,12 +267,11 @@ with st.form(key='dynamic_form'):
                     
                     if is_financial:
                         display_jlha = format_currency(clean_jlha_val)
-                        st.markdown(f"<div style='color: #a3a8b8; font-size: 0.85em; margin-top: -5px; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='color: #666666; font-size: 0.85em; margin-top: -5px; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha}</div>", unsafe_allow_html=True)
                     else:
-                        st.markdown(f"<div style='color: #a3a8b8; font-size: 0.85em; margin-top: -5px; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha_text}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='color: #666666; font-size: 0.85em; margin-top: -5px; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha_text}</div>", unsafe_allow_html=True)
 
         # --- 3. RENDER THE WIDGET ---
-        # Notice we added placeholder=" " to the inputs so the CSS trick can target them!
         if input_type == 'text':
              user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
         
@@ -306,7 +305,6 @@ with st.form(key='dynamic_form'):
             user_responses[col_name] = st.selectbox(label="hidden_label", label_visibility="collapsed", options=options, index=current_index, key=col_name)
         
         elif input_type == 'number':
-            # Updated to allow a truly empty number field so it can change colors too!
             try:
                 if clean_current_val == "":
                     num_val = None
@@ -329,9 +327,9 @@ with st.form(key='dynamic_form'):
         is_first_item = False 
         st.write("")
     
-    # --- BOTTOM SAVE BUTTON ---
+    # --- BOTTOM SAVE BUTTON (Also updated to primary blue!) ---
     st.write("")
-    submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom", use_container_width=True)
+    submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom", use_container_width=True, type="primary")
     
     # 8. SUBMISSION LOGIC
     if submitted_top or submitted_bottom:
