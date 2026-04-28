@@ -157,7 +157,7 @@ if 'Tab Description' in df_config.columns:
     if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
         st.markdown(f"<p style='color: #444444; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
 
-# --- UPDATED: CSS FOR TEXT BOX BORDERS AND VISIBLE PROGRESS TRACK ---
+# --- UPDATED: BULLETPROOF CSS FOR PROGRESS BARS ---
 st.markdown("""
     <style>
         /* 1. Main page background */
@@ -183,7 +183,7 @@ st.markdown("""
             padding: 30px !important;
         }
 
-        /* 4. DEFAULT TEXT BOX BORDERS (Makes them visible!) */
+        /* 4. DEFAULT TEXT BOX BORDERS */
         div[data-baseweb="input"], 
         div[data-baseweb="textarea"],
         div[data-baseweb="select"] {
@@ -200,7 +200,7 @@ st.markdown("""
             box-shadow: 0 0 8px rgba(28, 131, 225, 0.3) !important;
         }
         
-        /* 6. Text Box Background Colors (White when empty, gray when filled) */
+        /* 6. Text Box Background Colors */
         div[data-baseweb="input"] input:placeholder-shown,
         div[data-baseweb="textarea"] textarea:placeholder-shown {
             background-color: #ffffff !important;
@@ -221,12 +221,15 @@ st.markdown("""
             color: #ffffff !important;
         }
 
-        /* --- 8. PROGRESS BAR COLORS --- */
-        [data-testid="stProgressBar"] > div {
-            background-color: #e0e6ed !important; /* Noticeable gray track */
+        /* --- 8. CORRECTED PROGRESS BAR COLORS --- */
+        /* Targets the physical bar container, ignoring the text label */
+        [data-testid="stProgressBar"] > div:last-child {
+            background-color: #e0e6ed !important; /* The same slate-gray as the form borders */
+            border-radius: 10px !important;
         }
-        [data-testid="stProgressBar"] > div > div {
-            background-color: #1C83E1 !important; /* Blue fill */
+        /* Targets the blue fill inside */
+        [data-testid="stProgressBar"] > div:last-child > div {
+            background-color: #1C83E1 !important; 
         }
     </style>
 """, unsafe_allow_html=True)
