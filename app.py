@@ -60,15 +60,11 @@ if user_info.empty:
 current_client_name = user_info['Client'].iloc[0]
 user_county = user_info['County'].iloc[0] 
 
-# 4. LOAD THE DATA SAFELY (THE NEW BULLETPROOF METHOD)
-# We read the raw grid without skipping ANY rows so we don't lose your formatting!
+# 4. LOAD THE DATA SAFELY (THE BULLETPROOF METHOD)
 df_raw = conn.read(worksheet=f"{user_county}_Data", ttl=0, keep_default_na=False, header=None)
 
-# We teach the app exactly how your specific spreadsheet is structured:
-# Row Index 3 (Sheet Row 4) contains the Q1, Q2 column headers
 headers = df_raw.iloc[3] 
 
-# Row Index 4+ (Sheet Row 5+) contains the actual client data
 df_data = df_raw.iloc[4:].copy() 
 df_data.columns = headers
 df_data = df_data.reset_index(drop=True)
@@ -125,7 +121,8 @@ with st.form(key='dynamic_form'):
             if not is_first_item:
                 st.markdown("<hr style='margin-top: 25px; margin-bottom: 15px;'>", unsafe_allow_html=True) 
             
-            st.markdown(f"<h3 style='margin-top: 0px; margin-bottom: 10px;'><u>{label}</u></h3>", unsafe_allow_html=True)
+            # FIXED: Removed the <u> and </u> tags from this line!
+            st.markdown(f"<h3 style='margin-top: 0px; margin-bottom: 10px;'>{label}</h3>", unsafe_allow_html=True)
             is_first_item = False
             continue 
             
@@ -253,16 +250,12 @@ with st.form(key='dynamic_form'):
         headers_list = list(headers)
         
         for col, new_val in user_responses.items():
-            # 1. Update the app's internal memory
             df_data.at[user_row_index, col] = new_val
             
-            # 2. Update the raw spreadsheet grid!
             if col in headers_list:
                 col_idx = headers_list.index(col)
-                # user_row_index + 4 ensures we target Sheet Row 5 and beyond
                 df_raw.iat[user_row_index + 4, col_idx] = new_val
         
-        # Format the raw grid so Streamlit saves it exactly as it found it
         df_raw.columns = df_raw.iloc[0]
         df_to_save = df_raw.iloc[1:].copy()
         
