@@ -136,43 +136,37 @@ st.sidebar.progress(progress_percent, text=f"{filled_questions} of {total_questi
 
 # 7. DYNAMIC FORM GENERATOR
 
-st.markdown(f"<h1 style='margin-top: 0px; padding-top: 0px;'>{selected_tab}</h1>", unsafe_allow_html=True)
-    
-if 'Tab Description' in df_config.columns:
-    descriptions = tab_questions['Tab Description'].dropna().unique()
-    if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
-        st.markdown(f"<p style='color: var(--text-color); opacity: 0.8; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
-
-# --- UPDATED: CSS FOR PERFECTLY ALIGNED STICKY BUTTON ---
+# --- UPDATED: STICKY CSS TARGETING THE BUTTON CONTAINER ---
 st.markdown("""
     <style>
-        /* Target the container to make it sticky, creating a solid background strip */
+        /* Creates the solid, sticky background for the button */
         [data-testid="stFormSubmitButton"] {
             position: sticky !important;
-            top: 55px !important; /* Safely clears Streamlit's top menu bar */
+            top: 55px !important; /* Clears Streamlit's top menu */
             z-index: 9999 !important;
             background-color: var(--background-color) !important;
             padding-top: 15px !important;
             padding-bottom: 15px !important;
-            margin-top: -10px !important;
-        }
-        /* Target the button itself to stretch perfectly across the form container */
-        [data-testid="stFormSubmitButton"] button {
-            width: 100% !important; /* Will perfectly align with the plant emoji header above it */
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2) !important;
-            border-radius: 8px !important;
-            padding: 12px 0px !important; /* Thick vertically */
-            border: 2px solid var(--primary-color) !important;
-            font-size: 16px !important;
-            font-weight: bold !important;
+            margin-top: -15px !important;
+            border-bottom: 1px solid var(--secondary-background-color) !important;
         }
     </style>
 """, unsafe_allow_html=True)
 
 with st.form(key='dynamic_form'):
 
-    # This sits at the very top of the form, allowing the CSS to grab it and make it sticky
-    submitted = st.form_submit_button("💾 Save Progress")
+    # 1. THE SAVE BUTTON FIRST
+    # use_container_width=True forces it to stretch to the form's borders perfectly!
+    submitted = st.form_submit_button("💾 Save Progress", use_container_width=True)
+
+    # 2. THE HEADER SECOND
+    # Placed right beneath the button so it aligns with the left edge of the button
+    st.markdown(f"<h1 style='margin-top: 5px; padding-top: 0px;'>{selected_tab}</h1>", unsafe_allow_html=True)
+        
+    if 'Tab Description' in df_config.columns:
+        descriptions = tab_questions['Tab Description'].dropna().unique()
+        if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
+            st.markdown(f"<p style='color: var(--text-color); opacity: 0.8; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
 
     user_responses = {}
     is_first_item = True  
