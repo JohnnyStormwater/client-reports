@@ -92,41 +92,45 @@ tabs = df_config['Tab'].unique()
 selected_tab = st.sidebar.radio("Navigate", tabs)
 
 # 7. DYNAMIC FORM GENERATOR
-
-# Section Description
 tab_questions = df_config[df_config['Tab'] == selected_tab]
 
-if 'Tab Description' in df_config.columns:
-    descriptions = tab_questions['Tab Description'].dropna().unique()
-    if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
-        st.markdown(str(descriptions[0]))
-        st.write("") 
-
-# --- FIXED: CSS FOR TRUE STICKY HEADER ---
+# --- BULLETPROOF CSS FOR STICKY HEADER ---
+# Using !important forces Streamlit to respect our sticky command no matter what.
 st.markdown("""
     <style>
-        /* Specifically target the FIRST horizontal column block inside the form */
         [data-testid="stForm"] div[data-testid="stHorizontalBlock"]:first-of-type {
-            position: -webkit-sticky;
-            position: sticky;
-            top: 60px; /* Streamlit's default top header is 60px, so this tucks perfectly beneath it! */
-            background-color: var(--background-color); 
-            z-index: 999;
-            padding-top: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid var(--secondary-background-color);
-            margin-top: -15px;
+            position: -webkit-sticky !important;
+            position: sticky !important;
+            top: 50px !important; 
+            background-color: var(--background-color) !important;
+            z-index: 999 !important;
+            padding-bottom: 10px !important;
+            padding-top: 10px !important;
+            border-bottom: 2px solid var(--secondary-background-color) !important;
+            margin-bottom: 20px !important;
+            margin-top: -15px !important;
         }
     </style>
 """, unsafe_allow_html=True)
 
 with st.form(key='dynamic_form'):
     
-    # --- STICKY HEADER & SAVE BUTTON ROW ---
+    # --- STICKY HEADER, SUBHEADER, & SAVE BUTTON ROW ---
     col1, col2 = st.columns([3, 1])
+    
     with col1:
+        # 1. The Main Title
         st.markdown(f"<h2 style='margin-top: 0px; padding-top: 0px;'>{selected_tab}</h2>", unsafe_allow_html=True)
+        
+        # 2. The Subheader Description (Moved inside the sticky block!)
+        if 'Tab Description' in df_config.columns:
+            descriptions = tab_questions['Tab Description'].dropna().unique()
+            if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
+                # Using a negative top margin to pull it up snug against the main title
+                st.markdown(f"<p style='color: var(--text-color); opacity: 0.8; margin-top: -15px; margin-bottom: 0px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
+
     with col2:
+        # A tiny spacer so the button aligns nicely with the multi-line text block on the left
         st.write("") 
         submitted = st.form_submit_button("💾 Save Progress", use_container_width=True)
     
