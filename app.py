@@ -37,6 +37,13 @@ def format_currency(val_str):
 
 # 1. SETUP & CONNECTION
 st.set_page_config(page_title="Client Reporting Portal", layout="wide")
+
+# --- NEW: CELEBRATION TRIGGER ---
+# This checks if the user just completed a section on the previous screen refresh
+if st.session_state.get('show_celebration', False):
+    st.balloons()
+    st.session_state['show_celebration'] = False
+
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 # 2. GET USER IDENTITY (From URL)
@@ -118,7 +125,7 @@ else:
 
 st.sidebar.title(f"{sidebar_icon} {current_client_name}")
 
-# --- UPDATED: BULLETPROOF HTML OVERALL PROGRESS BAR ---
+# --- HTML OVERALL PROGRESS BAR ---
 overall_progress_html = f"""
 <div style="background-color: #eef6fc; border: 1px solid #cde0f5; border-radius: 8px; padding: 15px; margin-bottom: 25px;">
     <div style="font-weight: bold; color: #1C83E1; margin-bottom: 5px;">🏆 Overall Progress:</div>
@@ -154,7 +161,7 @@ st.sidebar.markdown("### 📍 Currently Editing:")
 st.sidebar.info(f"**{selected_tab}**")
 
 
-# --- UPDATED: BULLETPROOF HTML SECTION PROGRESS BAR ---
+# --- HTML SECTION PROGRESS BAR ---
 section_progress_html = f"""
 <div style="background-color: #eef6fc; border: 1px solid #cde0f5; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
     <div style="font-weight: bold; color: #1C83E1; margin-bottom: 5px;">📊 Section Progress:</div>
@@ -176,7 +183,7 @@ if 'Tab Description' in df_config.columns:
     if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
         st.markdown(f"<p style='color: #444444; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
 
-# --- CSS (Progress bar rules removed since we use pure HTML now!) ---
+# --- CSS FOR CARD LAYOUT & BORDERS ---
 st.markdown("""
     <style>
         /* 1. Main page background */
@@ -392,6 +399,17 @@ with st.form(key='dynamic_form'):
     # 8. SUBMISSION LOGIC
     if submitted_top or submitted_bottom:
         headers_list = list(headers)
+        
+        # --- NEW: Check if they just hit 100% BEFORE saving to session state ---
+        new_filled_questions = 0
+        for index, row in actionable_questions.iterrows():
+            col_name = row['Column Name']
+            if format_cell_value(user_responses.get(col_name, "")) != "":
+                new_filled_questions += 1
+                
+        # If they just crossed the finish line for this section, queue the balloons!
+        if new_filled_questions == total_questions and filled_questions < total_questions and total_questions > 0:
+            st.session_state['show_celebration'] = True
         
         for col, new_val in user_responses.items():
             df_data.at[user_row_index, col] = new_val
