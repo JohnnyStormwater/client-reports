@@ -157,7 +157,7 @@ if 'Tab Description' in df_config.columns:
     if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
         st.markdown(f"<p style='color: #444444; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
 
-# --- UPDATED: CSS FOR 2-TONE CARD LAYOUT, MENU TABS, & PROGRESS BARS ---
+# --- REVERTED & UPDATED CSS ---
 st.markdown("""
     <style>
         /* 1. Main page background */
@@ -211,48 +211,17 @@ st.markdown("""
             color: #ffffff !important;
         }
 
-        /* --- NEW: CUSTOM PROGRESS BARS --- */
+        /* --- NEW: PROGRESS BAR COLORS --- */
         [data-testid="stProgressBar"] > div {
             background-color: #EAF4FF !important; /* Pale blue track */
         }
         [data-testid="stProgressBar"] > div > div {
-            background-color: #3A9DF8 !important; /* Lighter blue fill */
+            background-color: #1C83E1 !important; /* Blue fill */
         }
 
-        /* --- NEW: MENU TAB RADIO BUTTONS --- */
-        [data-testid="stSidebar"] div[role="radiogroup"] > label {
-            background-color: #EAF4FF !important; /* Pale blue unclicked */
-            border-radius: 8px !important;
-            padding: 8px 12px !important;
-            margin-bottom: 8px !important;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        
-        /* Hover effect for unclicked tabs */
-        [data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
-            background-color: #D6E8FC !important;
-        }
-
-        /* Lighter blue for clicked/active tab */
-        [data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
-            background-color: #3A9DF8 !important; 
-        }
-
-        /* Dark text for readable unclicked tabs */
-        [data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:not(:checked)) p {
-            color: #444444 !important; 
-        }
-
-        /* White text for active tab */
-        [data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) p {
-            color: #ffffff !important; 
-            font-weight: bold !important;
-        }
-        
-        /* Hide the radio circle for a clean menu tab look */
-        [data-testid="stSidebar"] div[role="radiogroup"] div[data-baseweb="radio"] > div:first-child {
-            display: none !important;
+        /* --- NEW: PALE BLUE RADIO CIRCLES --- */
+        [data-testid="stSidebar"] [data-baseweb="radio"] > div:first-child {
+            background-color: #EAF4FF !important; /* Makes the empty circles pale blue */
         }
     </style>
 """, unsafe_allow_html=True)
