@@ -157,21 +157,32 @@ if 'Tab Description' in df_config.columns:
     if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
         st.markdown(f"<p style='color: #444444; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
 
-# --- UPDATED: CSS FOR 2-TONE CARD LAYOUT & COLOR CHANGES ---
+# --- UPDATED: CSS FOR L-SHAPED LAYOUT ---
 st.markdown("""
     <style>
-        /* 1. TWO-TONE MAGIC: Makes the main page a soft, professional gray */
+        /* 1. Main page background */
         .stApp {
             background-color: #f0f2f6 !important;
         }
+        
+        /* NEW: Make the Sidebar pure white to match the top bar */
+        [data-testid="stSidebar"] {
+            background-color: #ffffff !important;
+            border-right: 1px solid #e0e6ed !important; /* Subtle separator line */
+        }
+        
+        /* NEW: Explicitly make the top header white to blend perfectly */
+        [data-testid="stHeader"] {
+            background-color: #ffffff !important;
+        }
 
-        /* 2. TWO-TONE MAGIC: Makes the form itself a crisp, pure white card with a subtle shadow */
+        /* 2. Makes the form itself a crisp, pure white card */
         [data-testid="stForm"] {
             background-color: #ffffff !important;
             border-radius: 12px !important;
             border: 1px solid #e0e6ed !important;
             box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.04) !important;
-            padding: 30px !important; /* Gives the text nice breathing room away from the borders */
+            padding: 30px !important;
         }
 
         /* 3. The glowing outline when a user clicks into a box */
