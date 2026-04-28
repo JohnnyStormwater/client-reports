@@ -39,9 +39,8 @@ def format_currency(val_str):
 st.set_page_config(page_title="Client Reporting Portal", layout="wide")
 
 # --- CELEBRATION TRIGGER ---
-# This checks if the user just completed a section on the previous screen refresh
 if st.session_state.get('show_celebration', False):
-    st.snow()  # You can change this back to st.balloons() if you prefer!
+    st.balloons()  # Switched back to balloons!
     st.session_state['show_celebration'] = False
 
 conn = st.connection("gsheets", type=GSheetsConnection)
@@ -56,8 +55,12 @@ if not user_token:
 
 # --- THE ROUTER ---
 # 3. READ DIRECTORY TO FIND THE USER'S COUNTY
-df_directory = conn.read(worksheet="Directory", ttl=0)
-df_directory['Token'] = df_directory['Token'].astype(str)
+try:
+    df_directory = conn.read(worksheet="Directory", ttl=60)
+    df_directory['Token'] = df_directory['Token'].astype(str)
+except Exception as e:
+    st.error("⛔ Google API Error: Could not read the 'Directory' tab. Please check your sheet names or wait a moment if rate-limited.")
+    st.stop()
 
 user_info = df_directory[df_directory['Token'] == user_token]
 if user_info.empty:
@@ -67,8 +70,12 @@ if user_info.empty:
 current_client_name = user_info['Client'].iloc[0]
 user_county = user_info['County'].iloc[0] 
 
-# 4. LOAD THE DATA SAFELY
-df_raw = conn.read(worksheet=f"{user_county}_Data", ttl=0, keep_default_na=False, header=None)
+# 4. LOAD THE DATA SAFELY (With new Error Handling!)
+try:
+    df_raw = conn.read(worksheet=f"{user_county}_Data", ttl=0, keep_default_na=False, header=None)
+except Exception as e:
+    st.error(f"⛔ Google API Error: Could not find the tab named '{user_county}_Data' or the app is rate-limited.")
+    st.stop()
 
 headers = df_raw.iloc[3] 
 
@@ -77,7 +84,12 @@ df_data.columns = headers
 df_data = df_data.reset_index(drop=True)
 df_data['Token'] = df_data['Token'].astype(str)
 
-df_config = conn.read(worksheet=f"{user_county}_Config", ttl=0)
+try:
+    # Changed TTL to 60 seconds to prevent hitting Google's rate limit so easily!
+    df_config = conn.read(worksheet=f"{user_county}_Config", ttl=60)
+except Exception as e:
+    st.error(f"⛔ Google API Error: Could not find the tab named '{user_county}_Config' or the app is rate-limited.")
+    st.stop()
 
 # 5. FIND THE USER'S ROW 
 user_row_index = df_data[df_data['Token'] == str(user_token)].index
@@ -418,18 +430,15 @@ with st.form(key='dynamic_form'):
                 col_idx = headers_list.index(col)
                 df_raw.iat[user_row_index + 4, col_idx] = new_val
         
-        # --- FIXED: DEDUPLICATE COLUMN NAMES TO PREVENT THE ATTRIBUTEERROR ---
+        # --- DEDUPLICATE COLUMN NAMES TO PREVENT THE ATTRIBUTEERROR ---
         new_cols = []
         seen = set()
         
         for c in df_raw.iloc[0]:
-            # Convert to string and clean up 'nan' or empty values
             c_str = str(c) if pd.notna(c) else ""
             if c_str.strip() == "" or c_str.lower() == "nan":
                 c_str = ""
                 
-            # If the column name already exists (like duplicate empty columns), 
-            # add an invisible space to make it unique so Pandas doesn't crash!
             while c_str in seen:
                 c_str += " "
                 
@@ -439,6 +448,9 @@ with st.form(key='dynamic_form'):
         df_raw.columns = new_cols
         df_to_save = df_raw.iloc[1:].copy()
         
-        conn.update(worksheet=f"{user_county}_Data", data=df_to_save)
-        st.success(f"✅ Saved data for {selected_tab}!")
-        st.rerun()
+        try:
+            conn.update(worksheet=f"{user_county}_Data", data=df_to_save)
+            st.success(f"✅ Saved data for {selected_tab}!")
+            st.rerun()
+        except Exception as e:
+             st.error("⛔ Google API Error: Could not save data. The app may be rate-limited. Please wait a minute and try again.")
