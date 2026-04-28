@@ -146,8 +146,8 @@ if 'Tab Description' in df_config.columns:
 
 with st.form(key='dynamic_form'):
 
-    # --- TOP SAVE BUTTON ---
-    submitted_top = st.form_submit_button("💾 Save Progress", key="save_top")
+    # --- TOP SAVE BUTTON (Now Full Width!) ---
+    submitted_top = st.form_submit_button("💾 Save Progress", key="save_top", use_container_width=True)
 
     user_responses = {}
     is_first_item = True  
@@ -284,11 +284,11 @@ with st.form(key='dynamic_form'):
         is_first_item = False 
         st.write("")
     
-    # --- BOTTOM SAVE BUTTON ---
+    # --- BOTTOM SAVE BUTTON (Now Full Width!) ---
     st.write("")
-    submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom")
+    submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom", use_container_width=True)
     
-    # 8. SUBMISSION LOGIC (Listens for either button!)
+    # 8. SUBMISSION LOGIC
     if submitted_top or submitted_bottom:
         headers_list = list(headers)
         
