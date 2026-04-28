@@ -143,36 +143,11 @@ if 'Tab Description' in df_config.columns:
     if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
         st.markdown(f"<p style='color: var(--text-color); opacity: 0.8; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
 
-# --- REVERTED CSS FOR PERFECTLY ALIGNED STICKY BUTTON ---
-st.markdown("""
-    <style>
-        /* Target the container to make it sticky, creating a solid background strip */
-        [data-testid="stFormSubmitButton"] {
-            position: sticky !important;
-            top: 55px !important; /* Safely clears Streamlit's top menu bar */
-            z-index: 9999 !important;
-            background-color: var(--background-color) !important;
-            padding-top: 15px !important;
-            padding-bottom: 15px !important;
-            margin-top: -10px !important;
-        }
-        /* Target the button itself to stretch perfectly across the form container */
-        [data-testid="stFormSubmitButton"] button {
-            width: 100% !important; /* Will perfectly align with the content borders */
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2) !important;
-            border-radius: 8px !important;
-            padding: 12px 0px !important; /* Thick vertically */
-            border: 2px solid var(--primary-color) !important;
-            font-size: 16px !important;
-            font-weight: bold !important;
-        }
-    </style>
-""", unsafe_allow_html=True)
 
 with st.form(key='dynamic_form'):
 
-    # This sits at the very top of the form, allowing the CSS to grab it and make it sticky
-    submitted = st.form_submit_button("💾 Save Progress", use_container_width=True)
+    # --- TOP SAVE BUTTON ---
+    submitted_top = st.form_submit_button("💾 Save Progress", key="save_top")
 
     user_responses = {}
     is_first_item = True  
@@ -309,8 +284,12 @@ with st.form(key='dynamic_form'):
         is_first_item = False 
         st.write("")
     
-    # 8. SUBMISSION LOGIC
-    if submitted:
+    # --- BOTTOM SAVE BUTTON ---
+    st.write("")
+    submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom")
+    
+    # 8. SUBMISSION LOGIC (Listens for either button!)
+    if submitted_top or submitted_bottom:
         headers_list = list(headers)
         
         for col, new_val in user_responses.items():
