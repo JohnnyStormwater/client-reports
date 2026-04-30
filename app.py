@@ -345,10 +345,20 @@ with st.form(key='dynamic_form'):
                     else:
                         st.markdown(f"<div style='color: #444444; font-size: 0.85em; margin-top: -5px; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha_text}</div>", unsafe_allow_html=True)
 
+        # --- UPDATED: WIDGET RENDERING LOGIC ---
         if input_type == 'text':
              user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
+             
         elif input_type == 'textarea':
              user_responses[col_name] = st.text_area(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
+             
+        elif input_type == 'file_upload':
+             # If a file was already uploaded, display a clickable link to it!
+             if clean_current_val != "":
+                 st.markdown(f"<div style='font-size: 0.85em; margin-bottom: 10px; padding: 10px; background-color: #f0f2f6; border-radius: 6px;'>📎 <b>Current File:</b> <a href='{clean_current_val}' target='_blank'>View Uploaded Document</a><br><span style='color: #666; font-size: 0.9em;'>Upload a new file below to overwrite the current one.</span></div>", unsafe_allow_html=True)
+             
+             user_responses[col_name] = st.file_uploader(label="hidden_label", label_visibility="collapsed", key=col_name)
+             
         elif input_type == 'readonly':
              display_text = clean_current_val
              if display_text == "" and 'Previous_Col' in row and pd.notna(row['Previous_Col']):
@@ -360,6 +370,7 @@ with st.form(key='dynamic_form'):
              display_text = display_text.replace('\n', '  \n')
              if display_text != "":
                  st.markdown(display_text, unsafe_allow_html=True)
+                 
         elif input_type == 'dropdown':
             options_str = str(row['Options']) if pd.notna(row['Options']) else ""
             options = [opt.strip() for opt in options_str.split(',')]
@@ -368,6 +379,7 @@ with st.form(key='dynamic_form'):
             except ValueError:
                 current_index = 0
             user_responses[col_name] = st.selectbox(label="hidden_label", label_visibility="collapsed", options=options, index=current_index, key=col_name)
+            
         elif input_type == 'number':
             try:
                 if clean_current_val == "":
@@ -379,9 +391,11 @@ with st.form(key='dynamic_form'):
             except ValueError:
                 num_val = None
             user_responses[col_name] = st.number_input(label="hidden_label", label_visibility="collapsed", value=num_val, placeholder=" ", key=col_name)
+            
         elif input_type == 'checkbox':
             is_checked = True if str(clean_current_val).lower() == 'true' else False
             user_responses[col_name] = st.checkbox(label="Check if Yes", value=is_checked, key=col_name)
+            
         elif input_type == 'date':
              user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
         
@@ -391,23 +405,71 @@ with st.form(key='dynamic_form'):
     st.write("")
     submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom", use_container_width=True)
     
+    # --- UPDATED: SUBMISSION & FILE UPLOAD LOGIC ---
     if submitted_top or submitted_bottom:
         headers_list = list(headers)
-        new_filled_questions = 0
+        
+        # 1. First, separate the file uploads from the regular responses
+        final_responses = {}
+        drive_service = None
+        needs_drive = False
+        
+        # Check if they actually dropped any files in
         for index, row in actionable_questions.iterrows():
-            col_name = row['Column Name']
-            if format_cell_value(user_responses.get(col_name, "")) != "":
+            col = row['Column Name']
+            if row['Type'] == 'file_upload' and user_responses.get(col) is not None:
+                needs_drive = True
+                break
+                
+        # If they did, authenticate to Google Drive once
+        if needs_drive:
+            try:
+                with st.spinner("Authenticating secure connection to Google Drive..."):
+                    drive_service = authenticate_drive()
+            except Exception as e:
+                st.error("⛔ Could not connect to Google Drive. Please contact support.")
+                st.stop()
+                
+        # Process every answer
+        for index, row in actionable_questions.iterrows():
+            col = row['Column Name']
+            q_type = row['Type']
+            raw_val = user_responses.get(col)
+            
+            if q_type == 'file_upload':
+                if raw_val is not None:
+                    # They uploaded a new file! Send it to Drive.
+                    with st.spinner(f"Uploading file for '{row['Label']}'..."):
+                        try:
+                            file_id = upload_to_drive(raw_val, drive_service)
+                            # Save the clickable URL to the Google Sheet
+                            final_responses[col] = f"https://drive.google.com/file/d/{file_id}/view"
+                        except Exception as e:
+                            st.error(f"⛔ Failed to upload '{raw_val.name}'. Error: {str(e)}")
+                            final_responses[col] = df_data.at[user_row_index, col] # fallback to old data
+                else:
+                    # They didn't upload a new file. Keep whatever was already in the Google Sheet.
+                    final_responses[col] = df_data.at[user_row_index, col]
+            else:
+                final_responses[col] = raw_val
+
+        # 2. Check if they just hit 100%
+        new_filled_questions = 0
+        for col, val in final_responses.items():
+            if format_cell_value(val) != "":
                 new_filled_questions += 1
                 
         if new_filled_questions == total_questions and filled_questions < total_questions and total_questions > 0:
             st.session_state['show_celebration'] = True
         
-        for col, new_val in user_responses.items():
+        # 3. Write data to the dataframe
+        for col, new_val in final_responses.items():
             df_data.at[user_row_index, col] = new_val
             if col in headers_list:
                 col_idx = headers_list.index(col)
                 df_raw.iat[user_row_index + 4, col_idx] = new_val
         
+        # 4. Deduplicate Column Names & Save to Google Sheets
         new_cols = []
         seen = set()
         for c in df_raw.iloc[0]:
@@ -423,27 +485,10 @@ with st.form(key='dynamic_form'):
         df_to_save = df_raw.iloc[1:].copy()
         
         try:
-            conn.update(worksheet=f"{user_county}_Data", data=df_to_save)
-            st.cache_data.clear()
+            with st.spinner("Saving data to Google Sheets..."):
+                conn.update(worksheet=f"{user_county}_Data", data=df_to_save)
+                st.cache_data.clear()
             st.success(f"✅ Saved data for {selected_tab}!")
             st.rerun()
         except Exception as e:
             st.error("⛔ Google API Error: Could not save data. The app may be rate-limited. Please wait a minute and try again.")
-
-# --- NEW: GOOGLE DRIVE UPLOAD SECTION ---
-st.markdown("---")
-st.markdown("### ☁️ Document Upload")
-st.info("Files uploaded here are sent directly to the secure Google Workspace folder.")
-
-uploaded_file = st.file_uploader("Select a file to securely upload:", key="drive_uploader")
-
-if uploaded_file is not None:
-    if st.button("📤 Upload to Drive", use_container_width=True):
-        with st.spinner(f"Uploading '{uploaded_file.name}' to Drive..."):
-            try:
-                drive_service = authenticate_drive()
-                file_id = upload_to_drive(uploaded_file, drive_service)
-                st.success(f"✅ Successfully uploaded '{uploaded_file.name}'!")
-                st.balloons()
-            except Exception as e:
-                st.error(f"⛔ Upload failed. Please contact support. Error details: {str(e)}")
