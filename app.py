@@ -2,6 +2,13 @@ import streamlit as st
 import pandas as pd
 from streamlit_gsheets import GSheetsConnection
 import re
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
+
+# --- CONSTANTS ---
+FOLDER_ID = '0AHdnucXOxMoCUk9PVA'
+DRIVE_SCOPES = ['https://www.googleapis.com/auth/drive.file'] 
 
 # --- HELPER FUNCTIONS FOR FORMATTING ---
 def format_cell_value(val):
@@ -35,11 +42,40 @@ def format_currency(val_str):
     except ValueError:
         return val_str 
 
+# --- GOOGLE DRIVE FUNCTIONS ---
+@st.cache_resource
+def authenticate_drive():
+    # Grabs the exact same JSON key you are already using for GSheets!
+    creds_info = st.secrets["connections"]["gsheets"] 
+    
+    creds = service_account.Credentials.from_service_account_info(
+        creds_info, scopes=DRIVE_SCOPES
+    )
+    service = build('drive', 'v3', credentials=creds)
+    return service
+
+def upload_to_drive(file, service):
+    file_metadata = {
+        'name': file.name,
+        'parents': [FOLDER_ID]
+    }
+    media = MediaIoBaseUpload(
+        file, 
+        mimetype=file.type, 
+        resumable=True
+    )
+    uploaded_file = service.files().create(
+        body=file_metadata,
+        media_body=media,
+        fields='id'
+    ).execute()
+    
+    return uploaded_file.get('id')
+
 # 1. SETUP & CONNECTION
 st.set_page_config(page_title="Client Reporting Portal", layout="wide")
 
 # --- CELEBRATION TRIGGER ---
-# This checks if the user just completed a section on the previous screen refresh
 if st.session_state.get('show_celebration', False):
     st.balloons()  
     st.session_state['show_celebration'] = False
@@ -71,7 +107,7 @@ if user_info.empty:
 current_client_name = user_info['Client'].iloc[0]
 user_county = user_info['County'].iloc[0] 
 
-# 4. LOAD THE DATA SAFELY (With new Cache TTL!)
+# 4. LOAD THE DATA SAFELY
 try:
     df_raw = conn.read(worksheet=f"{user_county}_Data", ttl="10m", keep_default_na=False, header=None)
 except Exception as e:
@@ -140,18 +176,18 @@ st.sidebar.title(f"{sidebar_icon} {current_client_name}")
 # --- CONTAINER FOR CURRENTLY EDITING (TOP) ---
 top_sidebar_placeholder = st.sidebar.container()
 
-# --- NAVIGATION (Right below container, no break) ---
+# --- NAVIGATION ---
 selected_tab = st.sidebar.radio("Navigate", tabs, format_func=lambda x: tab_display_dict[x])
 
-# --- BREAK UNDER NAVIGATION ---
 st.sidebar.markdown("---")
 
-# --- HTML OVERALL PROGRESS BAR (Bottom - UPDATED WITH COMBINED TEXT) ---
+# --- HTML OVERALL PROGRESS BAR ---
 overall_progress_html = f"""
 <div style="background-color: #eef6fc; border: 1px solid #cde0f5; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
     <div style="font-weight: bold; color: #1C83E1; margin-bottom: 5px;">🏆 Overall Progress:</div>
-    <div style="font-size: 13px; color: #444444; margin-bottom: 10px;">
-        {filled_overall_questions} of {total_overall_questions} answered <span style="color: #1C83E1; font-weight: bold;">({overall_percent}%)</span>
+    <div style="font-size: 13px; color: #444444; margin-bottom: 10px; display: flex; justify-content: space-between;">
+        <span>{filled_overall_questions} of {total_overall_questions} answered</span>
+        <span style="font-weight: bold; color: #1C83E1;">{overall_percent}%</span>
     </div>
     <div style="background-color: #d0d7e2; border-radius: 10px; width: 100%; height: 10px;">
         <div style="background-color: #1C83E1; border-radius: 10px; height: 100%; width: {overall_percent}%;"></div>
@@ -178,15 +214,16 @@ for index, row in actionable_questions.iterrows():
 progress_percent = int((filled_questions / total_questions) * 100) if total_questions > 0 else 100
 
 
-# --- HTML SECTION PROGRESS BAR (Injected back up to the top placeholder - UPDATED WITH COMBINED TEXT!) ---
+# --- HTML SECTION PROGRESS BAR ---
 top_sidebar_placeholder.markdown("### 📍 Currently Editing:")
 top_sidebar_placeholder.info(f"**{selected_tab}**")
 
 section_progress_html = f"""
 <div style="background-color: #eef6fc; border: 1px solid #cde0f5; border-radius: 8px; padding: 15px; margin-bottom: 10px;">
     <div style="font-weight: bold; color: #1C83E1; margin-bottom: 5px;">📊 Section Progress:</div>
-    <div style="font-size: 13px; color: #444444; margin-bottom: 10px;">
-        {filled_questions} of {total_questions} answered <span style="color: #1C83E1; font-weight: bold;">({progress_percent}%)</span>
+    <div style="font-size: 13px; color: #444444; margin-bottom: 10px; display: flex; justify-content: space-between;">
+        <span>{filled_questions} of {total_questions} answered</span>
+        <span style="font-weight: bold; color: #1C83E1;">{progress_percent}%</span>
     </div>
     <div style="background-color: #d0d7e2; border-radius: 10px; width: 100%; height: 10px;">
         <div style="background-color: #1C83E1; border-radius: 10px; height: 100%; width: {progress_percent}%;"></div>
@@ -197,7 +234,6 @@ top_sidebar_placeholder.markdown(section_progress_html, unsafe_allow_html=True)
 
 
 # 7. DYNAMIC FORM GENERATOR
-
 st.markdown(f"<h1 style='margin-top: 0px; padding-top: 0px;'>{selected_tab}</h1>", unsafe_allow_html=True)
     
 if 'Tab Description' in df_config.columns:
@@ -208,74 +244,38 @@ if 'Tab Description' in df_config.columns:
 # --- CSS FOR CARD LAYOUT & BORDERS ---
 st.markdown("""
     <style>
-        /* 1. Main page background */
-        .stApp {
-            background-color: #f0f2f6 !important;
-        }
-        
-        /* 2. White Sidebar & Header */
-        [data-testid="stSidebar"] {
-            background-color: #ffffff !important;
-            border-right: 1px solid #e0e6ed !important;
-        }
-        [data-testid="stHeader"] {
-            background-color: #ffffff !important;
-        }
-
-        /* 3. The Form Card */
+        .stApp { background-color: #f0f2f6 !important; }
+        [data-testid="stSidebar"] { background-color: #ffffff !important; border-right: 1px solid #e0e6ed !important; }
+        [data-testid="stHeader"] { background-color: #ffffff !important; }
         [data-testid="stForm"] {
-            background-color: #ffffff !important;
-            border-radius: 12px !important;
-            border: 1px solid #e0e6ed !important;
-            box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.04) !important;
+            background-color: #ffffff !important; border-radius: 12px !important;
+            border: 1px solid #e0e6ed !important; box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.04) !important;
             padding: 30px !important;
         }
-
-        /* 4. DEFAULT TEXT BOX BORDERS */
-        div[data-baseweb="input"], 
-        div[data-baseweb="textarea"],
-        div[data-baseweb="select"] {
-            border: 1px solid #e0e6ed !important; 
-            border-radius: 6px !important;
-            transition: all 0.2s ease-in-out;
+        div[data-baseweb="input"], div[data-baseweb="textarea"], div[data-baseweb="select"] {
+            border: 1px solid #e0e6ed !important; border-radius: 6px !important; transition: all 0.2s ease-in-out;
         }
-
-        /* 5. Input Field Focus Glow */
-        div[data-baseweb="input"]:focus-within, 
-        div[data-baseweb="textarea"]:focus-within,
-        div[data-baseweb="select"]:focus-within {
-            border-color: #1C83E1 !important;
-            box-shadow: 0 0 8px rgba(28, 131, 225, 0.3) !important;
+        div[data-baseweb="input"]:focus-within, div[data-baseweb="textarea"]:focus-within, div[data-baseweb="select"]:focus-within {
+            border-color: #1C83E1 !important; box-shadow: 0 0 8px rgba(28, 131, 225, 0.3) !important;
         }
-        
-        /* 6. Text Box Background Colors */
-        div[data-baseweb="input"] input:placeholder-shown,
-        div[data-baseweb="textarea"] textarea:placeholder-shown {
+        div[data-baseweb="input"] input:placeholder-shown, div[data-baseweb="textarea"] textarea:placeholder-shown {
             background-color: #ffffff !important;
         }
-        div[data-baseweb="input"] input:not(:placeholder-shown),
-        div[data-baseweb="textarea"] textarea:not(:placeholder-shown) {
+        div[data-baseweb="input"] input:not(:placeholder-shown), div[data-baseweb="textarea"] textarea:not(:placeholder-shown) {
             background-color: #f0f2f6 !important;
         }
-        
-        /* 7. Blue Save Buttons */
         [data-testid="stFormSubmitButton"] button {
-            background-color: #1C83E1 !important;
-            color: #ffffff !important;
-            border: none !important;
+            background-color: #1C83E1 !important; color: #ffffff !important; border: none !important;
         }
         [data-testid="stFormSubmitButton"] button:hover {
-            background-color: #1565C0 !important;
-            color: #ffffff !important;
+            background-color: #1565C0 !important; color: #ffffff !important;
         }
     </style>
 """, unsafe_allow_html=True)
 
 with st.form(key='dynamic_form'):
 
-    # --- TOP SAVE BUTTON ---
     submitted_top = st.form_submit_button("💾 Save Progress", key="save_top", use_container_width=True)
-
     user_responses = {}
     is_first_item = True  
 
@@ -283,19 +283,15 @@ with st.form(key='dynamic_form'):
         col_name = row['Column Name']
         label = row['Label']
         input_type = row['Type']
-        
         is_financial = "Expenditure" in selected_tab or "Budget" in selected_tab or "💲" in selected_tab
         
-        # --- SUBHEADER LOGIC ---
         if input_type == 'subheader':
             if not is_first_item:
                 st.markdown("<hr style='margin-top: 25px; margin-bottom: 15px; border-color: #e0e6ed;'>", unsafe_allow_html=True) 
-            
             st.markdown(f"<h3 style='margin-top: 0px; margin-bottom: 10px;'>{label}</h3>", unsafe_allow_html=True)
             is_first_item = False
             continue 
             
-        # SAFETY CHECK
         if col_name in df_data.columns:
             raw_current_val = df_data.at[user_row_index, col_name]
         else:
@@ -303,7 +299,6 @@ with st.form(key='dynamic_form'):
             
         clean_current_val = format_cell_value(raw_current_val)
 
-        # --- 1. DISPLAY THE QUESTION LABEL FIRST ---
         display_label = str(label).replace("**", "").strip()
         
         if "•" in display_label:
@@ -318,22 +313,17 @@ with st.form(key='dynamic_form'):
             for line in display_label.split('\n'):
                 if line.strip(): 
                     formatted_parts.append(f"**{line.strip()}**")
-            
             st.markdown("  \n\n".join(formatted_parts))
 
-        # --- 2. CONTEXTUAL DATA (LAST YEAR & JLHA) ---
         if 'Previous_Col' in row and pd.notna(row['Previous_Col']):
             prev_col_name = str(row['Previous_Col']).strip()
-            
             if prev_col_name in df_data.columns:
                 raw_prev_val = df_data.at[user_row_index, prev_col_name]
                 clean_prev_val = format_cell_value(raw_prev_val)
-                
                 if clean_prev_val != "" and input_type != 'readonly':
                     has_line_breaks = '\n' in clean_prev_val
                     separator = "<br>" if has_line_breaks else " "
                     display_prev_text = clean_prev_val.replace('\n', '<br>')
-                    
                     if is_financial:
                         display_prev = format_currency(clean_prev_val)
                         st.markdown(f"<div style='color: #444444; font-size: 0.85em; margin-top: -10px; margin-bottom: 5px;'>💰 <b>Last Year's Total:</b>{separator}{display_prev}</div>", unsafe_allow_html=True)
@@ -342,55 +332,42 @@ with st.form(key='dynamic_form'):
 
         if 'JLHA_Col' in df_config.columns and 'JLHA_Col' in row and pd.notna(row['JLHA_Col']):
             jlha_col_name = str(row['JLHA_Col']).strip()
-            
             if jlha_col_name in df_data.columns:
                 raw_jlha_val = df_data.at[user_row_index, jlha_col_name]
                 clean_jlha_val = format_cell_value(raw_jlha_val)
-                
                 if clean_jlha_val != "" and input_type != 'readonly':
                     has_line_breaks = '\n' in clean_jlha_val
                     separator = "<br>" if has_line_breaks else " "
                     display_jlha_text = clean_jlha_val.replace('\n', '<br>')
-                    
                     if is_financial:
                         display_jlha = format_currency(clean_jlha_val)
                         st.markdown(f"<div style='color: #444444; font-size: 0.85em; margin-top: -5px; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha}</div>", unsafe_allow_html=True)
                     else:
                         st.markdown(f"<div style='color: #444444; font-size: 0.85em; margin-top: -5px; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha_text}</div>", unsafe_allow_html=True)
 
-        # --- 3. RENDER THE WIDGET ---
         if input_type == 'text':
              user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
-        
         elif input_type == 'textarea':
              user_responses[col_name] = st.text_area(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
-             
         elif input_type == 'readonly':
              display_text = clean_current_val
-             
              if display_text == "" and 'Previous_Col' in row and pd.notna(row['Previous_Col']):
                  prev_col_name = str(row['Previous_Col']).strip()
                  if prev_col_name in df_data.columns:
                      display_text = format_cell_value(df_data.at[user_row_index, prev_col_name])
-             
              display_text = re.sub(r'(?i)(\d+\s*BMPs completed:)', r'<u>**\1**</u>', display_text)
              display_text = re.sub(r'(?i)(BMPs in progress:)', r'<u>**\1**</u>', display_text)
              display_text = display_text.replace('\n', '  \n')
-             
              if display_text != "":
                  st.markdown(display_text, unsafe_allow_html=True)
-        
         elif input_type == 'dropdown':
             options_str = str(row['Options']) if pd.notna(row['Options']) else ""
             options = [opt.strip() for opt in options_str.split(',')]
-            
             try:
                 current_index = options.index(clean_current_val)
             except ValueError:
                 current_index = 0
-            
             user_responses[col_name] = st.selectbox(label="hidden_label", label_visibility="collapsed", options=options, index=current_index, key=col_name)
-        
         elif input_type == 'number':
             try:
                 if clean_current_val == "":
@@ -401,57 +378,44 @@ with st.form(key='dynamic_form'):
                         num_val = int(num_val)
             except ValueError:
                 num_val = None
-                
             user_responses[col_name] = st.number_input(label="hidden_label", label_visibility="collapsed", value=num_val, placeholder=" ", key=col_name)
-        
         elif input_type == 'checkbox':
             is_checked = True if str(clean_current_val).lower() == 'true' else False
             user_responses[col_name] = st.checkbox(label="Check if Yes", value=is_checked, key=col_name)
-        
         elif input_type == 'date':
              user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
         
         is_first_item = False 
         st.write("")
     
-    # --- BOTTOM SAVE BUTTON ---
     st.write("")
     submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom", use_container_width=True)
     
-    # 8. SUBMISSION LOGIC
     if submitted_top or submitted_bottom:
         headers_list = list(headers)
-        
-        # --- Check if they just hit 100% BEFORE saving to session state ---
         new_filled_questions = 0
         for index, row in actionable_questions.iterrows():
             col_name = row['Column Name']
             if format_cell_value(user_responses.get(col_name, "")) != "":
                 new_filled_questions += 1
                 
-        # If they just crossed the finish line for this section, queue the celebration!
         if new_filled_questions == total_questions and filled_questions < total_questions and total_questions > 0:
             st.session_state['show_celebration'] = True
         
         for col, new_val in user_responses.items():
             df_data.at[user_row_index, col] = new_val
-            
             if col in headers_list:
                 col_idx = headers_list.index(col)
                 df_raw.iat[user_row_index + 4, col_idx] = new_val
         
-        # --- DEDUPLICATE COLUMN NAMES TO PREVENT THE ATTRIBUTEERROR ---
         new_cols = []
         seen = set()
-        
         for c in df_raw.iloc[0]:
             c_str = str(c) if pd.notna(c) else ""
             if c_str.strip() == "" or c_str.lower() == "nan":
                 c_str = ""
-                
             while c_str in seen:
                 c_str += " "
-                
             seen.add(c_str)
             new_cols.append(c_str)
             
@@ -460,11 +424,26 @@ with st.form(key='dynamic_form'):
         
         try:
             conn.update(worksheet=f"{user_county}_Data", data=df_to_save)
-            
-            # THE MAGIC FIX: Clear the memory snapshot so the next load is fresh!
             st.cache_data.clear()
-            
             st.success(f"✅ Saved data for {selected_tab}!")
             st.rerun()
         except Exception as e:
             st.error("⛔ Google API Error: Could not save data. The app may be rate-limited. Please wait a minute and try again.")
+
+# --- NEW: GOOGLE DRIVE UPLOAD SECTION ---
+st.markdown("---")
+st.markdown("### ☁️ Document Upload")
+st.info("Files uploaded here are sent directly to the secure Google Workspace folder.")
+
+uploaded_file = st.file_uploader("Select a file to securely upload:", key="drive_uploader")
+
+if uploaded_file is not None:
+    if st.button("📤 Upload to Drive", use_container_width=True):
+        with st.spinner(f"Uploading '{uploaded_file.name}' to Drive..."):
+            try:
+                drive_service = authenticate_drive()
+                file_id = upload_to_drive(uploaded_file, drive_service)
+                st.success(f"✅ Successfully uploaded '{uploaded_file.name}'!")
+                st.balloons()
+            except Exception as e:
+                st.error(f"⛔ Upload failed. Please contact support. Error details: {str(e)}")
