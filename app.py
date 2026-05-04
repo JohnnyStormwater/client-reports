@@ -285,7 +285,7 @@ st.markdown("""
             min-height: 28px !important;
             width: auto !important;
             margin-top: -10px !important;
-            margin-bottom: -5px !important; /* Pulls the next element up closer */
+            margin-bottom: -5px !important;
         }
         [data-testid="stFormSubmitButton"] button[kind="secondaryFormSubmit"] p {
             font-size: 0.85em !important;
@@ -305,7 +305,7 @@ with st.form(key='dynamic_form'):
     st.write("") 
     
     user_responses = {}
-    quick_saves = [] # List to track all our quick save buttons
+    quick_saves = [] 
     is_first_item = True  
 
     for index, row in tab_questions.iterrows():
@@ -391,11 +391,16 @@ with st.form(key='dynamic_form'):
                  prev_col_name = str(row['Previous_Col']).strip()
                  if prev_col_name in df_data.columns:
                      display_text = format_cell_value(df_data.at[user_row_index, prev_col_name])
+             
+             # --- If the display text is completely empty, default to "None" ---
+             if display_text == "":
+                 display_text = "*None*"
+                 
              display_text = re.sub(r'(?i)(\d+\s*BMPs completed:)', r'<u>**\1**</u>', display_text)
              display_text = re.sub(r'(?i)(BMPs in progress:)', r'<u>**\1**</u>', display_text)
              display_text = display_text.replace('\n', '  \n')
-             if display_text != "":
-                 st.markdown(display_text, unsafe_allow_html=True)
+             
+             st.markdown(display_text, unsafe_allow_html=True)
                  
         elif input_type == 'dropdown':
             options_str = str(row['Options']) if pd.notna(row['Options']) else ""
@@ -432,7 +437,7 @@ with st.form(key='dynamic_form'):
             
         is_first_item = False 
     
-    st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True) # controlled spacing before the final save button
+    st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True) 
     
     # --- BOTTOM SAVE BUTTON (Set to Primary) ---
     submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom", type="primary", use_container_width=True)
