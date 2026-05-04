@@ -137,14 +137,16 @@ user_row_index = user_row_index[0]
 
 # --- GLOBAL PROGRESS & DYNAMIC SIDEBAR LABELS ---
 tab_display_dict = {}
-all_actionable_questions = df_config[~df_config['Type'].isin(['subheader', 'readonly'])]
-total_overall_questions = len(all_actionable_questions)
+
+# UPDATED: Progress counter ignores file_uploads so they are completely optional!
+all_progress_questions = df_config[~df_config['Type'].isin(['subheader', 'readonly', 'file_upload'])]
+total_overall_questions = len(all_progress_questions)
 filled_overall_questions = 0
 
 tabs = df_config['Tab'].unique()
 
 for t in tabs:
-    t_questions = all_actionable_questions[all_actionable_questions['Tab'] == t]
+    t_questions = all_progress_questions[all_progress_questions['Tab'] == t]
     t_total = len(t_questions)
     t_filled = 0
     
@@ -172,15 +174,12 @@ else:
 
 st.sidebar.title(f"{sidebar_icon} {current_client_name}")
 
-# --- CONTAINER FOR CURRENTLY EDITING (TOP) ---
 top_sidebar_placeholder = st.sidebar.container()
 
-# --- NAVIGATION ---
 selected_tab = st.sidebar.radio("Navigate", tabs, format_func=lambda x: tab_display_dict[x])
 
 st.sidebar.markdown("---")
 
-# --- HTML OVERALL PROGRESS BAR ---
 overall_progress_html = f"""
 <div style="background-color: #eef6fc; border: 1px solid #cde0f5; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
     <div style="font-weight: bold; color: #1C83E1; margin-bottom: 5px;">🏆 Overall Progress:</div>
@@ -199,11 +198,12 @@ st.sidebar.markdown(overall_progress_html, unsafe_allow_html=True)
 # --- SECTION PROGRESS TRACKER LOGIC ---
 tab_questions = df_config[df_config['Tab'] == selected_tab]
 
-actionable_questions = tab_questions[~tab_questions['Type'].isin(['subheader', 'readonly'])]
-total_questions = len(actionable_questions)
+# UPDATED: Section progress also ignores file_uploads
+section_progress_questions = tab_questions[~tab_questions['Type'].isin(['subheader', 'readonly', 'file_upload'])]
+total_questions = len(section_progress_questions)
 filled_questions = 0
 
-for index, row in actionable_questions.iterrows():
+for index, row in section_progress_questions.iterrows():
     col_name = row['Column Name']
     if col_name in df_data.columns:
         val = format_cell_value(df_data.at[user_row_index, col_name])
@@ -212,8 +212,6 @@ for index, row in actionable_questions.iterrows():
 
 progress_percent = int((filled_questions / total_questions) * 100) if total_questions > 0 else 100
 
-
-# --- HTML SECTION PROGRESS BAR ---
 top_sidebar_placeholder.markdown("### 📍 Currently Editing:")
 top_sidebar_placeholder.info(f"**{selected_tab}**")
 
@@ -294,12 +292,21 @@ st.markdown("""
             background-color: #1565C0 !important; 
             color: #ffffff !important;
         }
+        
+        /* UPDATED: Shrink the Native File Uploader 'Browse Files' button */
+        [data-testid="stFileUploader"] button {
+            padding: 2px 14px !important;
+            min-height: 28px !important;
+            font-size: 0.85em !important;
+        }
+        [data-testid="stFileUploader"] small {
+            font-size: 0.8em !important;
+        }
     </style>
 """, unsafe_allow_html=True)
 
 with st.form(key='dynamic_form'):
 
-    # --- TOP SAVE BUTTON (Set to Primary) ---
     submitted_top = st.form_submit_button("💾 Save Progress", key="save_top", type="primary", use_container_width=True)
     
     st.write("") 
@@ -308,7 +315,8 @@ with st.form(key='dynamic_form'):
     quick_saves = [] 
     is_first_item = True  
 
-    for index, row in tab_questions.iterrows():
+    # We use enumerate here so we can easily "peek ahead" to the next row!
+    for i, (index, row) in enumerate(tab_questions.iterrows()):
         col_name = row['Column Name']
         label = row['Label']
         input_type = row['Type']
@@ -429,10 +437,19 @@ with st.form(key='dynamic_form'):
         elif input_type == 'date':
              user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
         
-        # --- RENDER THE QUICK SAVE BUTTON ---
+        # --- UPDATED: PEEK-AHEAD LOGIC FOR THE QUICK SAVE BUTTON ---
         if input_type not in ['subheader', 'readonly']:
-            qs = st.form_submit_button("💾 Quick Save", key=f"qs_{col_name}", type="secondary")
-            quick_saves.append(qs)
+            hide_quick_save = False
+            
+            # Check the very next row. If it's a file upload, hide this button!
+            if i < len(tab_questions) - 1:
+                next_type = tab_questions.iloc[i+1]['Type']
+                if next_type == 'file_upload':
+                    hide_quick_save = True
+                    
+            if not hide_quick_save:
+                qs = st.form_submit_button("💾 Quick Save", key=f"qs_{col_name}", type="secondary")
+                quick_saves.append(qs)
             
         is_first_item = False 
     
@@ -446,7 +463,10 @@ with st.form(key='dynamic_form'):
         drive_service = None
         needs_drive = False
         
-        for index, row in actionable_questions.iterrows():
+        # We define a special list of questions to save that INCLUDES file uploads
+        questions_to_save = tab_questions[~tab_questions['Type'].isin(['subheader', 'readonly'])]
+        
+        for index, row in questions_to_save.iterrows():
             col = row['Column Name']
             if row['Type'] == 'file_upload' and user_responses.get(col) is not None:
                 needs_drive = True
@@ -460,7 +480,7 @@ with st.form(key='dynamic_form'):
                 st.error("⛔ Could not connect to Google Drive. Please contact support.")
                 st.stop()
                 
-        for index, row in actionable_questions.iterrows():
+        for index, row in questions_to_save.iterrows():
             col = row['Column Name']
             q_type = row['Type']
             raw_val = user_responses.get(col)
@@ -479,10 +499,12 @@ with st.form(key='dynamic_form'):
             else:
                 final_responses[col] = raw_val
 
+        # Check for celebration, strictly using questions that count for progress!
         new_filled_questions = 0
         for col, val in final_responses.items():
-            if format_cell_value(val) != "":
-                new_filled_questions += 1
+            if col in section_progress_questions['Column Name'].values:
+                if format_cell_value(val) != "":
+                    new_filled_questions += 1
                 
         if new_filled_questions == total_questions and filled_questions < total_questions and total_questions > 0:
             st.session_state['show_celebration'] = True
