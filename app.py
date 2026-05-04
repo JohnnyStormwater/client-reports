@@ -276,7 +276,7 @@ st.markdown("""
             background-color: #1565C0 !important; color: #ffffff !important;
         }
         
-        /* Quick Save Buttons (Small) */
+        /* Quick Save Buttons (Small & Tightly Spaced) */
         [data-testid="stFormSubmitButton"] button[kind="secondaryFormSubmit"] {
             background-color: #1C83E1 !important; 
             color: #ffffff !important; 
@@ -285,6 +285,7 @@ st.markdown("""
             min-height: 28px !important;
             width: auto !important;
             margin-top: -10px !important;
+            margin-bottom: -5px !important; /* Pulls the next element up closer */
         }
         [data-testid="stFormSubmitButton"] button[kind="secondaryFormSubmit"] p {
             font-size: 0.85em !important;
@@ -425,19 +426,18 @@ with st.form(key='dynamic_form'):
              user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
         
         # --- RENDER THE QUICK SAVE BUTTON ---
-        # Only render if it is an actionable question (not a readonly block or subheader)
         if input_type not in ['subheader', 'readonly']:
             qs = st.form_submit_button("💾 Quick Save", key=f"qs_{col_name}", type="secondary")
             quick_saves.append(qs)
             
         is_first_item = False 
-        st.write("")
-        st.write("") # Extra spacing to cleanly separate questions
+    
+    st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True) # controlled spacing before the final save button
     
     # --- BOTTOM SAVE BUTTON (Set to Primary) ---
     submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom", type="primary", use_container_width=True)
     
-    # --- CHECK IF ANY SAVE BUTTON WAS CLICKED (Top, Bottom, or ANY Quick Save) ---
+    # --- CHECK IF ANY SAVE BUTTON WAS CLICKED ---
     if submitted_top or submitted_bottom or any(quick_saves):
         headers_list = list(headers)
         final_responses = {}
