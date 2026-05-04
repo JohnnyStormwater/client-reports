@@ -45,7 +45,6 @@ def format_currency(val_str):
 # --- GOOGLE DRIVE FUNCTIONS ---
 @st.cache_resource
 def authenticate_drive():
-    # Grabs the exact same JSON key you are already using for GSheets!
     creds_info = st.secrets["connections"]["gsheets"] 
     
     creds = service_account.Credentials.from_service_account_info(
@@ -241,58 +240,37 @@ if 'Tab Description' in df_config.columns:
     if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
         st.markdown(f"<p style='color: #444444; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
 
-# --- CSS FOR CARD LAYOUT & BORDERS ---
+# --- REVERTED CSS FOR STABLE CARD LAYOUT ---
 st.markdown("""
     <style>
-        /* 1. Main page background */
         .stApp { background-color: #f0f2f6 !important; }
-        
-        /* 2. Sidebar */
         [data-testid="stSidebar"] { background-color: #ffffff !important; border-right: 1px solid #e0e6ed !important; }
         [data-testid="stHeader"] { background-color: #ffffff !important; }
         
-        /* 3. Make the native form wrapper completely invisible */
+        /* Restore the solid white form card */
         [data-testid="stForm"] {
-            background-color: transparent !important; 
-            border: none !important; 
-            box-shadow: none !important; 
-            padding: 0px !important;
-        }
-        
-        /* 4. Target the SCROLLABLE CONTAINER to act as the white card */
-        [data-testid="stForm"] [data-testid="stVerticalBlockBorderWrapper"] {
             background-color: #ffffff !important; 
             border-radius: 12px !important;
             border: 1px solid #e0e6ed !important; 
             box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.04) !important;
-        }
-        
-        /* Force the inner scrollable area to be white too */
-        [data-testid="stForm"] [data-testid="stScrollableContainer"] {
-            background-color: #ffffff !important; 
-            padding: 20px !important;
+            padding: 30px !important;
         }
 
-        /* 5. Inputs inside the white box (Locked to white so they never camouflage!) */
+        /* Input styling */
         div[data-baseweb="input"], div[data-baseweb="textarea"], div[data-baseweb="select"] {
-            background-color: #ffffff !important;
-            border: 1px solid #cde0f5 !important; 
-            border-radius: 6px !important; 
-            transition: all 0.2s ease-in-out;
+            border: 1px solid #e0e6ed !important; border-radius: 6px !important; transition: all 0.2s ease-in-out;
         }
-        
-        /* Fixes inner input backgrounds */
-        div[data-baseweb="input"] input, div[data-baseweb="textarea"] textarea {
-            background-color: #ffffff !important;
-        }
-
-        /* Input Focus Glow */
         div[data-baseweb="input"]:focus-within, div[data-baseweb="textarea"]:focus-within, div[data-baseweb="select"]:focus-within {
-            border-color: #1C83E1 !important; 
-            box-shadow: 0 0 8px rgba(28, 131, 225, 0.3) !important;
+            border-color: #1C83E1 !important; box-shadow: 0 0 8px rgba(28, 131, 225, 0.3) !important;
+        }
+        div[data-baseweb="input"] input:placeholder-shown, div[data-baseweb="textarea"] textarea:placeholder-shown {
+            background-color: #ffffff !important;
+        }
+        div[data-baseweb="input"] input:not(:placeholder-shown), div[data-baseweb="textarea"] textarea:not(:placeholder-shown) {
+            background-color: #f0f2f6 !important;
         }
         
-        /* 6. Buttons */
+        /* Buttons */
         [data-testid="stFormSubmitButton"] button {
             background-color: #1C83E1 !important; color: #ffffff !important; border: none !important;
         }
@@ -304,139 +282,137 @@ st.markdown("""
 
 with st.form(key='dynamic_form'):
 
-    # --- TOP SAVE BUTTON (Sits on the gray background!) ---
+    # --- TOP SAVE BUTTON ---
     submitted_top = st.form_submit_button("💾 Save Progress", key="save_top", use_container_width=True)
     
-    st.write("") # Small gap
+    st.write("") 
     
     user_responses = {}
     is_first_item = True  
 
-    # --- THE SCROLLABLE WHITE BOX ---
-    with st.container(height=600):
-        for index, row in tab_questions.iterrows():
-            col_name = row['Column Name']
-            label = row['Label']
-            input_type = row['Type']
-            is_financial = "Expenditure" in selected_tab or "Budget" in selected_tab or "💲" in selected_tab
+    for index, row in tab_questions.iterrows():
+        col_name = row['Column Name']
+        label = row['Label']
+        input_type = row['Type']
+        is_financial = "Expenditure" in selected_tab or "Budget" in selected_tab or "💲" in selected_tab
+        
+        if input_type == 'subheader':
+            if not is_first_item:
+                st.markdown("<hr style='margin-top: 25px; margin-bottom: 15px; border-color: #e0e6ed;'>", unsafe_allow_html=True) 
+            st.markdown(f"<h3 style='margin-top: 0px; margin-bottom: 10px;'>{label}</h3>", unsafe_allow_html=True)
+            is_first_item = False
+            continue 
             
-            if input_type == 'subheader':
-                if not is_first_item:
-                    st.markdown("<hr style='margin-top: 25px; margin-bottom: 15px; border-color: #e0e6ed;'>", unsafe_allow_html=True) 
-                st.markdown(f"<h3 style='margin-top: 0px; margin-bottom: 10px;'>{label}</h3>", unsafe_allow_html=True)
-                is_first_item = False
-                continue 
-                
-            if col_name in df_data.columns:
-                raw_current_val = df_data.at[user_row_index, col_name]
-            else:
-                raw_current_val = ""
-                
-            clean_current_val = format_cell_value(raw_current_val)
-
-            display_label = str(label).replace("**", "").strip()
+        if col_name in df_data.columns:
+            raw_current_val = df_data.at[user_row_index, col_name]
+        else:
+            raw_current_val = ""
             
-            if "•" in display_label:
-                parts = display_label.split("•")
-                formatted_label = f"**{parts[0].strip()}**\n" 
-                for part in parts[1:]:
-                    if part.strip(): 
-                        formatted_label += f"* **{part.strip()}**\n" 
-                st.markdown(formatted_label)
-            else:
-                formatted_parts = []
-                for line in display_label.split('\n'):
-                    if line.strip(): 
-                        formatted_parts.append(f"**{line.strip()}**")
-                st.markdown("  \n\n".join(formatted_parts))
+        clean_current_val = format_cell_value(raw_current_val)
 
-            if 'Previous_Col' in row and pd.notna(row['Previous_Col']):
-                prev_col_name = str(row['Previous_Col']).strip()
-                if prev_col_name in df_data.columns:
-                    raw_prev_val = df_data.at[user_row_index, prev_col_name]
-                    clean_prev_val = format_cell_value(raw_prev_val)
-                    if clean_prev_val != "" and input_type != 'readonly':
-                        has_line_breaks = '\n' in clean_prev_val
-                        separator = "<br>" if has_line_breaks else " "
-                        display_prev_text = clean_prev_val.replace('\n', '<br>')
-                        if is_financial:
-                            display_prev = format_currency(clean_prev_val)
-                            st.markdown(f"<div style='color: #444444; font-size: 0.85em; margin-top: -10px; margin-bottom: 5px;'>💰 <b>Last Year's Total:</b>{separator}{display_prev}</div>", unsafe_allow_html=True)
-                        else:
-                            st.markdown(f"<div style='color: #444444; font-size: 0.85em; margin-top: -10px; margin-bottom: 5px;'>🗓️ <b>Last year's response:</b>{separator}{display_prev_text}</div>", unsafe_allow_html=True)
+        display_label = str(label).replace("**", "").strip()
+        
+        if "•" in display_label:
+            parts = display_label.split("•")
+            formatted_label = f"**{parts[0].strip()}**\n" 
+            for part in parts[1:]:
+                if part.strip(): 
+                    formatted_label += f"* **{part.strip()}**\n" 
+            st.markdown(formatted_label)
+        else:
+            formatted_parts = []
+            for line in display_label.split('\n'):
+                if line.strip(): 
+                    formatted_parts.append(f"**{line.strip()}**")
+            st.markdown("  \n\n".join(formatted_parts))
 
-            if 'JLHA_Col' in df_config.columns and 'JLHA_Col' in row and pd.notna(row['JLHA_Col']):
-                jlha_col_name = str(row['JLHA_Col']).strip()
-                if jlha_col_name in df_data.columns:
-                    raw_jlha_val = df_data.at[user_row_index, jlha_col_name]
-                    clean_jlha_val = format_cell_value(raw_jlha_val)
-                    if clean_jlha_val != "" and input_type != 'readonly':
-                        has_line_breaks = '\n' in clean_jlha_val
-                        separator = "<br>" if has_line_breaks else " "
-                        display_jlha_text = clean_jlha_val.replace('\n', '<br>')
-                        if is_financial:
-                            display_jlha = format_currency(clean_jlha_val)
-                            st.markdown(f"<div style='color: #444444; font-size: 0.85em; margin-top: -5px; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha}</div>", unsafe_allow_html=True)
-                        else:
-                            st.markdown(f"<div style='color: #444444; font-size: 0.85em; margin-top: -5px; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha_text}</div>", unsafe_allow_html=True)
-
-            if input_type == 'text':
-                 user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
-                 
-            elif input_type == 'textarea':
-                 user_responses[col_name] = st.text_area(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
-                 
-            elif input_type == 'file_upload':
-                 if clean_current_val != "":
-                     st.markdown(f"<div style='font-size: 0.85em; margin-bottom: 10px; padding: 10px; background-color: #f0f2f6; border-radius: 6px;'>📎 <b>Current File:</b> <a href='{clean_current_val}' target='_blank'>View Uploaded Document</a><br><span style='color: #666; font-size: 0.9em;'>Upload a new file below to overwrite the current one.</span></div>", unsafe_allow_html=True)
-                 user_responses[col_name] = st.file_uploader(label="hidden_label", label_visibility="collapsed", key=col_name)
-                 
-            elif input_type == 'readonly':
-                 display_text = clean_current_val
-                 if display_text == "" and 'Previous_Col' in row and pd.notna(row['Previous_Col']):
-                     prev_col_name = str(row['Previous_Col']).strip()
-                     if prev_col_name in df_data.columns:
-                         display_text = format_cell_value(df_data.at[user_row_index, prev_col_name])
-                 display_text = re.sub(r'(?i)(\d+\s*BMPs completed:)', r'<u>**\1**</u>', display_text)
-                 display_text = re.sub(r'(?i)(BMPs in progress:)', r'<u>**\1**</u>', display_text)
-                 display_text = display_text.replace('\n', '  \n')
-                 if display_text != "":
-                     st.markdown(display_text, unsafe_allow_html=True)
-                     
-            elif input_type == 'dropdown':
-                options_str = str(row['Options']) if pd.notna(row['Options']) else ""
-                options = [opt.strip() for opt in options_str.split(',')]
-                try:
-                    current_index = options.index(clean_current_val)
-                except ValueError:
-                    current_index = 0
-                user_responses[col_name] = st.selectbox(label="hidden_label", label_visibility="collapsed", options=options, index=current_index, key=col_name)
-                
-            elif input_type == 'number':
-                try:
-                    if clean_current_val == "":
-                        num_val = None
+        if 'Previous_Col' in row and pd.notna(row['Previous_Col']):
+            prev_col_name = str(row['Previous_Col']).strip()
+            if prev_col_name in df_data.columns:
+                raw_prev_val = df_data.at[user_row_index, prev_col_name]
+                clean_prev_val = format_cell_value(raw_prev_val)
+                if clean_prev_val != "" and input_type != 'readonly':
+                    has_line_breaks = '\n' in clean_prev_val
+                    separator = "<br>" if has_line_breaks else " "
+                    display_prev_text = clean_prev_val.replace('\n', '<br>')
+                    if is_financial:
+                        display_prev = format_currency(clean_prev_val)
+                        st.markdown(f"<div style='color: #444444; font-size: 0.85em; margin-top: -10px; margin-bottom: 5px;'>💰 <b>Last Year's Total:</b>{separator}{display_prev}</div>", unsafe_allow_html=True)
                     else:
-                        num_val = float(clean_current_val)
-                        if num_val.is_integer():
-                            num_val = int(num_val)
-                except ValueError:
-                    num_val = None
-                user_responses[col_name] = st.number_input(label="hidden_label", label_visibility="collapsed", value=num_val, placeholder=" ", key=col_name)
-                
-            elif input_type == 'checkbox':
-                is_checked = True if str(clean_current_val).lower() == 'true' else False
-                user_responses[col_name] = st.checkbox(label="Check if Yes", value=is_checked, key=col_name)
-                
-            elif input_type == 'date':
-                 user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
+                        st.markdown(f"<div style='color: #444444; font-size: 0.85em; margin-top: -10px; margin-bottom: 5px;'>🗓️ <b>Last year's response:</b>{separator}{display_prev_text}</div>", unsafe_allow_html=True)
+
+        if 'JLHA_Col' in df_config.columns and 'JLHA_Col' in row and pd.notna(row['JLHA_Col']):
+            jlha_col_name = str(row['JLHA_Col']).strip()
+            if jlha_col_name in df_data.columns:
+                raw_jlha_val = df_data.at[user_row_index, jlha_col_name]
+                clean_jlha_val = format_cell_value(raw_jlha_val)
+                if clean_jlha_val != "" and input_type != 'readonly':
+                    has_line_breaks = '\n' in clean_jlha_val
+                    separator = "<br>" if has_line_breaks else " "
+                    display_jlha_text = clean_jlha_val.replace('\n', '<br>')
+                    if is_financial:
+                        display_jlha = format_currency(clean_jlha_val)
+                        st.markdown(f"<div style='color: #444444; font-size: 0.85em; margin-top: -5px; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha}</div>", unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"<div style='color: #444444; font-size: 0.85em; margin-top: -5px; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha_text}</div>", unsafe_allow_html=True)
+
+        if input_type == 'text':
+             user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
+             
+        elif input_type == 'textarea':
+             user_responses[col_name] = st.text_area(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
+             
+        elif input_type == 'file_upload':
+             if clean_current_val != "":
+                 st.markdown(f"<div style='font-size: 0.85em; margin-bottom: 10px; padding: 10px; background-color: #f0f2f6; border-radius: 6px;'>📎 <b>Current File:</b> <a href='{clean_current_val}' target='_blank'>View Uploaded Document</a><br><span style='color: #666; font-size: 0.9em;'>Upload a new file below to overwrite the current one.</span></div>", unsafe_allow_html=True)
+             user_responses[col_name] = st.file_uploader(label="hidden_label", label_visibility="collapsed", key=col_name)
+             
+        elif input_type == 'readonly':
+             display_text = clean_current_val
+             if display_text == "" and 'Previous_Col' in row and pd.notna(row['Previous_Col']):
+                 prev_col_name = str(row['Previous_Col']).strip()
+                 if prev_col_name in df_data.columns:
+                     display_text = format_cell_value(df_data.at[user_row_index, prev_col_name])
+             display_text = re.sub(r'(?i)(\d+\s*BMPs completed:)', r'<u>**\1**</u>', display_text)
+             display_text = re.sub(r'(?i)(BMPs in progress:)', r'<u>**\1**</u>', display_text)
+             display_text = display_text.replace('\n', '  \n')
+             if display_text != "":
+                 st.markdown(display_text, unsafe_allow_html=True)
+                 
+        elif input_type == 'dropdown':
+            options_str = str(row['Options']) if pd.notna(row['Options']) else ""
+            options = [opt.strip() for opt in options_str.split(',')]
+            try:
+                current_index = options.index(clean_current_val)
+            except ValueError:
+                current_index = 0
+            user_responses[col_name] = st.selectbox(label="hidden_label", label_visibility="collapsed", options=options, index=current_index, key=col_name)
             
-            is_first_item = False 
-            st.write("")
+        elif input_type == 'number':
+            try:
+                if clean_current_val == "":
+                    num_val = None
+                else:
+                    num_val = float(clean_current_val)
+                    if num_val.is_integer():
+                        num_val = int(num_val)
+            except ValueError:
+                num_val = None
+            user_responses[col_name] = st.number_input(label="hidden_label", label_visibility="collapsed", value=num_val, placeholder=" ", key=col_name)
+            
+        elif input_type == 'checkbox':
+            is_checked = True if str(clean_current_val).lower() == 'true' else False
+            user_responses[col_name] = st.checkbox(label="Check if Yes", value=is_checked, key=col_name)
+            
+        elif input_type == 'date':
+             user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
+        
+        is_first_item = False 
+        st.write("")
     
     st.write("")
     
-    # --- BOTTOM SAVE BUTTON (Sits on the gray background below the box!) ---
+    # --- BOTTOM SAVE BUTTON ---
     submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom", use_container_width=True)
     
     if submitted_top or submitted_bottom:
