@@ -138,7 +138,7 @@ user_row_index = user_row_index[0]
 # --- GLOBAL PROGRESS & DYNAMIC SIDEBAR LABELS ---
 tab_display_dict = {}
 
-# UPDATED: Progress counter ignores file_uploads so they are completely optional!
+# Progress counter ignores file_uploads
 all_progress_questions = df_config[~df_config['Type'].isin(['subheader', 'readonly', 'file_upload'])]
 total_overall_questions = len(all_progress_questions)
 filled_overall_questions = 0
@@ -198,7 +198,7 @@ st.sidebar.markdown(overall_progress_html, unsafe_allow_html=True)
 # --- SECTION PROGRESS TRACKER LOGIC ---
 tab_questions = df_config[df_config['Tab'] == selected_tab]
 
-# UPDATED: Section progress also ignores file_uploads
+# Section progress also ignores file_uploads
 section_progress_questions = tab_questions[~tab_questions['Type'].isin(['subheader', 'readonly', 'file_upload'])]
 total_questions = len(section_progress_questions)
 filled_questions = 0
@@ -293,7 +293,11 @@ st.markdown("""
             color: #ffffff !important;
         }
         
-        /* UPDATED: Shrink the Native File Uploader 'Browse Files' button */
+        /* UPDATED: Shrink the Native File Uploader Drop-Zone AND Button */
+        [data-testid="stFileUploadDropzone"] {
+            padding: 10px 15px !important; 
+            min-height: auto !important;
+        }
         [data-testid="stFileUploader"] button {
             padding: 2px 14px !important;
             min-height: 28px !important;
@@ -315,7 +319,6 @@ with st.form(key='dynamic_form'):
     quick_saves = [] 
     is_first_item = True  
 
-    # We use enumerate here so we can easily "peek ahead" to the next row!
     for i, (index, row) in enumerate(tab_questions.iterrows()):
         col_name = row['Column Name']
         label = row['Label']
@@ -437,11 +440,10 @@ with st.form(key='dynamic_form'):
         elif input_type == 'date':
              user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
         
-        # --- UPDATED: PEEK-AHEAD LOGIC FOR THE QUICK SAVE BUTTON ---
+        # --- PEEK-AHEAD LOGIC FOR THE QUICK SAVE BUTTON ---
         if input_type not in ['subheader', 'readonly']:
             hide_quick_save = False
             
-            # Check the very next row. If it's a file upload, hide this button!
             if i < len(tab_questions) - 1:
                 next_type = tab_questions.iloc[i+1]['Type']
                 if next_type == 'file_upload':
@@ -453,17 +455,14 @@ with st.form(key='dynamic_form'):
             
         is_first_item = False 
     
-    # --- BOTTOM SAVE BUTTON (Set to Primary) ---
     submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom", type="primary", use_container_width=True)
     
-    # --- CHECK IF ANY SAVE BUTTON WAS CLICKED ---
     if submitted_top or submitted_bottom or any(quick_saves):
         headers_list = list(headers)
         final_responses = {}
         drive_service = None
         needs_drive = False
         
-        # We define a special list of questions to save that INCLUDES file uploads
         questions_to_save = tab_questions[~tab_questions['Type'].isin(['subheader', 'readonly'])]
         
         for index, row in questions_to_save.iterrows():
@@ -499,7 +498,6 @@ with st.form(key='dynamic_form'):
             else:
                 final_responses[col] = raw_val
 
-        # Check for celebration, strictly using questions that count for progress!
         new_filled_questions = 0
         for col, val in final_responses.items():
             if col in section_progress_questions['Column Name'].values:
