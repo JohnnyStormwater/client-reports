@@ -293,18 +293,30 @@ st.markdown("""
             color: #ffffff !important;
         }
         
-        /* UPDATED: Shrink the Native File Uploader Drop-Zone AND Button */
+        /* UPDATED: Shrink the Native File Uploader Drop-Zone AND Center Contents */
         [data-testid="stFileUploadDropzone"] {
             padding: 10px 15px !important; 
             min-height: auto !important;
         }
+        
+        /* Forces the inner wrapper of the drop-zone to center items */
+        [data-testid="stFileUploadDropzone"] > div {
+            display: flex !important;
+            flex-direction: row !important;
+            justify-content: center !important;
+            align-items: center !important;
+            width: 100% !important;
+        }
+        
         [data-testid="stFileUploader"] button {
             padding: 2px 14px !important;
             min-height: 28px !important;
             font-size: 0.85em !important;
+            margin: 0 !important; /* Removes default margins to ensure perfect centering */
         }
         [data-testid="stFileUploader"] small {
             font-size: 0.8em !important;
+            margin-left: 10px !important; /* Adds a clean gap between the button and text */
         }
     </style>
 """, unsafe_allow_html=True)
