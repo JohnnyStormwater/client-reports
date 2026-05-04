@@ -240,14 +240,13 @@ if 'Tab Description' in df_config.columns:
     if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
         st.markdown(f"<p style='color: #444444; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
 
-# --- REVERTED CSS FOR STABLE CARD LAYOUT ---
+# --- CSS FOR CARD LAYOUT & BUTTONS ---
 st.markdown("""
     <style>
         .stApp { background-color: #f0f2f6 !important; }
         [data-testid="stSidebar"] { background-color: #ffffff !important; border-right: 1px solid #e0e6ed !important; }
         [data-testid="stHeader"] { background-color: #ffffff !important; }
         
-        /* Restore the solid white form card */
         [data-testid="stForm"] {
             background-color: #ffffff !important; 
             border-radius: 12px !important;
@@ -256,7 +255,6 @@ st.markdown("""
             padding: 30px !important;
         }
 
-        /* Input styling */
         div[data-baseweb="input"], div[data-baseweb="textarea"], div[data-baseweb="select"] {
             border: 1px solid #e0e6ed !important; border-radius: 6px !important; transition: all 0.2s ease-in-out;
         }
@@ -270,24 +268,43 @@ st.markdown("""
             background-color: #f0f2f6 !important;
         }
         
-        /* Buttons */
-        [data-testid="stFormSubmitButton"] button {
+        /* Main Save Buttons (Top/Bottom) */
+        [data-testid="stFormSubmitButton"] button[kind="primaryFormSubmit"] {
             background-color: #1C83E1 !important; color: #ffffff !important; border: none !important;
         }
-        [data-testid="stFormSubmitButton"] button:hover {
+        [data-testid="stFormSubmitButton"] button[kind="primaryFormSubmit"]:hover {
             background-color: #1565C0 !important; color: #ffffff !important;
+        }
+        
+        /* Quick Save Buttons (Small) */
+        [data-testid="stFormSubmitButton"] button[kind="secondaryFormSubmit"] {
+            background-color: #1C83E1 !important; 
+            color: #ffffff !important; 
+            border: none !important;
+            padding: 2px 14px !important;
+            min-height: 28px !important;
+            width: auto !important;
+            margin-top: -10px !important;
+        }
+        [data-testid="stFormSubmitButton"] button[kind="secondaryFormSubmit"] p {
+            font-size: 0.85em !important;
+        }
+        [data-testid="stFormSubmitButton"] button[kind="secondaryFormSubmit"]:hover {
+            background-color: #1565C0 !important; 
+            color: #ffffff !important;
         }
     </style>
 """, unsafe_allow_html=True)
 
 with st.form(key='dynamic_form'):
 
-    # --- TOP SAVE BUTTON ---
-    submitted_top = st.form_submit_button("💾 Save Progress", key="save_top", use_container_width=True)
+    # --- TOP SAVE BUTTON (Set to Primary) ---
+    submitted_top = st.form_submit_button("💾 Save Progress", key="save_top", type="primary", use_container_width=True)
     
     st.write("") 
     
     user_responses = {}
+    quick_saves = [] # List to track all our quick save buttons
     is_first_item = True  
 
     for index, row in tab_questions.iterrows():
@@ -407,15 +424,21 @@ with st.form(key='dynamic_form'):
         elif input_type == 'date':
              user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
         
+        # --- RENDER THE QUICK SAVE BUTTON ---
+        # Only render if it is an actionable question (not a readonly block or subheader)
+        if input_type not in ['subheader', 'readonly']:
+            qs = st.form_submit_button("💾 Quick Save", key=f"qs_{col_name}", type="secondary")
+            quick_saves.append(qs)
+            
         is_first_item = False 
         st.write("")
+        st.write("") # Extra spacing to cleanly separate questions
     
-    st.write("")
+    # --- BOTTOM SAVE BUTTON (Set to Primary) ---
+    submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom", type="primary", use_container_width=True)
     
-    # --- BOTTOM SAVE BUTTON ---
-    submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom", use_container_width=True)
-    
-    if submitted_top or submitted_bottom:
+    # --- CHECK IF ANY SAVE BUTTON WAS CLICKED (Top, Bottom, or ANY Quick Save) ---
+    if submitted_top or submitted_bottom or any(quick_saves):
         headers_list = list(headers)
         final_responses = {}
         drive_service = None
