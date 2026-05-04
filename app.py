@@ -241,7 +241,7 @@ if 'Tab Description' in df_config.columns:
     if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
         st.markdown(f"<p style='color: #444444; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
 
-# --- UPDATED CSS FOR THE NEW LAYOUT ---
+# --- CSS FOR CARD LAYOUT & BORDERS ---
 st.markdown("""
     <style>
         /* 1. Main page background */
@@ -251,7 +251,7 @@ st.markdown("""
         [data-testid="stSidebar"] { background-color: #ffffff !important; border-right: 1px solid #e0e6ed !important; }
         [data-testid="stHeader"] { background-color: #ffffff !important; }
         
-        /* 3. The Form Container (Made invisible to hold the save button on the gray background) */
+        /* 3. Make the native form wrapper completely invisible */
         [data-testid="stForm"] {
             background-color: transparent !important; 
             border: none !important; 
@@ -259,27 +259,37 @@ st.markdown("""
             padding: 0px !important;
         }
         
-        /* 4. The New Scrollable White Box (Targets the st.container inside the form) */
-        [data-testid="stVerticalBlockBorderWrapper"] {
+        /* 4. Target the SCROLLABLE CONTAINER to act as the white card */
+        [data-testid="stForm"] [data-testid="stVerticalBlockBorderWrapper"] {
             background-color: #ffffff !important; 
             border-radius: 12px !important;
             border: 1px solid #e0e6ed !important; 
             box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.04) !important;
+        }
+        
+        /* Force the inner scrollable area to be white too */
+        [data-testid="stForm"] [data-testid="stScrollableContainer"] {
+            background-color: #ffffff !important; 
             padding: 20px !important;
         }
 
-        /* 5. Inputs inside the white box */
+        /* 5. Inputs inside the white box (Locked to white so they never camouflage!) */
         div[data-baseweb="input"], div[data-baseweb="textarea"], div[data-baseweb="select"] {
-            border: 1px solid #e0e6ed !important; border-radius: 6px !important; transition: all 0.2s ease-in-out;
+            background-color: #ffffff !important;
+            border: 1px solid #cde0f5 !important; 
+            border-radius: 6px !important; 
+            transition: all 0.2s ease-in-out;
         }
-        div[data-baseweb="input"]:focus-within, div[data-baseweb="textarea"]:focus-within, div[data-baseweb="select"]:focus-within {
-            border-color: #1C83E1 !important; box-shadow: 0 0 8px rgba(28, 131, 225, 0.3) !important;
-        }
-        div[data-baseweb="input"] input:placeholder-shown, div[data-baseweb="textarea"] textarea:placeholder-shown {
+        
+        /* Fixes inner input backgrounds */
+        div[data-baseweb="input"] input, div[data-baseweb="textarea"] textarea {
             background-color: #ffffff !important;
         }
-        div[data-baseweb="input"] input:not(:placeholder-shown), div[data-baseweb="textarea"] textarea:not(:placeholder-shown) {
-            background-color: #f0f2f6 !important;
+
+        /* Input Focus Glow */
+        div[data-baseweb="input"]:focus-within, div[data-baseweb="textarea"]:focus-within, div[data-baseweb="select"]:focus-within {
+            border-color: #1C83E1 !important; 
+            box-shadow: 0 0 8px rgba(28, 131, 225, 0.3) !important;
         }
         
         /* 6. Buttons */
