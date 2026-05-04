@@ -392,7 +392,6 @@ with st.form(key='dynamic_form'):
                  if prev_col_name in df_data.columns:
                      display_text = format_cell_value(df_data.at[user_row_index, prev_col_name])
              
-             # --- If the display text is completely empty, default to "None" ---
              if display_text == "":
                  display_text = "*None*"
                  
@@ -436,8 +435,6 @@ with st.form(key='dynamic_form'):
             quick_saves.append(qs)
             
         is_first_item = False 
-    
-    st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True) 
     
     # --- BOTTOM SAVE BUTTON (Set to Primary) ---
     submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom", type="primary", use_container_width=True)
