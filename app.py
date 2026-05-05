@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from streamlit_gsheets import GSheetsConnection
 import re
+import io
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
@@ -58,15 +59,22 @@ def upload_to_drive(file, service):
         'name': file.name,
         'parents': [FOLDER_ID]
     }
+    
+    # Wrap the Streamlit file safely in BytesIO for Google's API
+    file_bytes = io.BytesIO(file.getvalue())
+    
     media = MediaIoBaseUpload(
-        file, 
+        file_bytes, 
         mimetype=file.type, 
         resumable=True
     )
+    
+    # Added supportsAllDrives=True which is strictly required for Shared Drives!
     uploaded_file = service.files().create(
         body=file_metadata,
         media_body=media,
-        fields='id'
+        fields='id',
+        supportsAllDrives=True 
     ).execute()
     
     return uploaded_file.get('id')
@@ -138,7 +146,6 @@ user_row_index = user_row_index[0]
 # --- GLOBAL PROGRESS & DYNAMIC SIDEBAR LABELS ---
 tab_display_dict = {}
 
-# Progress counter ignores file_uploads
 all_progress_questions = df_config[~df_config['Type'].isin(['subheader', 'readonly', 'file_upload'])]
 total_overall_questions = len(all_progress_questions)
 filled_overall_questions = 0
@@ -198,7 +205,6 @@ st.sidebar.markdown(overall_progress_html, unsafe_allow_html=True)
 # --- SECTION PROGRESS TRACKER LOGIC ---
 tab_questions = df_config[df_config['Tab'] == selected_tab]
 
-# Section progress also ignores file_uploads
 section_progress_questions = tab_questions[~tab_questions['Type'].isin(['subheader', 'readonly', 'file_upload'])]
 total_questions = len(section_progress_questions)
 filled_questions = 0
@@ -346,7 +352,6 @@ with st.form(key='dynamic_form'):
             
         clean_current_val = format_cell_value(raw_current_val)
 
-        # --- UPDATED QUESTION LABELS (Bigger font, Darker color) ---
         display_label = str(label).replace("**", "").strip()
         label_html = ""
         
@@ -414,17 +419,11 @@ with st.form(key='dynamic_form'):
              if display_text == "":
                  display_text = "None"
                  
-             # --- FIX: Convert markdown asterisks to HTML bold tags safely ---
              display_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', display_text)
-             
-             # Force underlines on our specific target phrases (whether bolded or not)
              display_text = re.sub(r'(?i)(<b>)?(\d+\s*BMPs completed:)(</b>)?', r'<u><b>\2</b></u>', display_text)
              display_text = re.sub(r'(?i)(<b>)?(BMPs in progress:)(</b>)?', r'<u><b>\2</b></u>', display_text)
-             
-             # Convert spacing to proper HTML breaks
              display_text = display_text.replace('\n', '<br>')
              
-             # --- FIX: Render as Stark Black (#000000), larger font, with clean line spacing ---
              st.markdown(f"<div style='font-size: 0.92em; color: #000000; margin-bottom: 15px; line-height: 1.5;'>{display_text}</div>", unsafe_allow_html=True)
                  
         elif input_type == 'dropdown':
@@ -469,7 +468,6 @@ with st.form(key='dynamic_form'):
             
         is_first_item = False 
     
-    # SAFETY NET: Spawns an invisible Save button if the tab is purely Read-Only, preventing Streamlit from crashing
     if not quick_saves:
         fallback_save = st.form_submit_button("💾 Save Progress", type="primary")
         quick_saves.append(fallback_save)
@@ -479,6 +477,7 @@ with st.form(key='dynamic_form'):
         final_responses = {}
         drive_service = None
         needs_drive = False
+        upload_failed = False
         
         questions_to_save = tab_questions[~tab_questions['Type'].isin(['subheader', 'readonly'])]
         
@@ -493,7 +492,7 @@ with st.form(key='dynamic_form'):
                 with st.spinner("Authenticating secure connection to Google Drive..."):
                     drive_service = authenticate_drive()
             except Exception as e:
-                st.error("⛔ Could not connect to Google Drive. Please contact support.")
+                st.error("⛔ Could not connect to Google Drive. Please ensure the Service Account has been added as an Editor to the Google Drive folder.")
                 st.stop()
                 
         for index, row in questions_to_save.iterrows():
@@ -508,8 +507,10 @@ with st.form(key='dynamic_form'):
                             file_id = upload_to_drive(raw_val, drive_service)
                             final_responses[col] = f"https://drive.google.com/file/d/{file_id}/view"
                         except Exception as e:
-                            st.error(f"⛔ Failed to upload '{raw_val.name}'. Error: {str(e)}")
+                            # Safely catch the error without breaking the app
+                            st.error(f"⛔ Google Drive Error on '{raw_val.name}': {str(e)}")
                             final_responses[col] = df_data.at[user_row_index, col] 
+                            upload_failed = True
                 else:
                     final_responses[col] = df_data.at[user_row_index, col]
             else:
@@ -548,7 +549,13 @@ with st.form(key='dynamic_form'):
             with st.spinner("Saving data to Google Sheets..."):
                 conn.update(worksheet=f"{user_county}_Data", data=df_to_save)
                 st.cache_data.clear()
-            st.success(f"✅ Saved data for {selected_tab}!")
-            st.rerun()
+            
+            # --- UPDATED: Prevent silent refresh if there is an error ---
+            if upload_failed:
+                st.warning("⚠️ Your text data was safely saved to the spreadsheet, but the file upload failed. Please check the error messages above or verify your Google Drive permissions.")
+            else:
+                st.success(f"✅ Saved data for {selected_tab}!")
+                st.rerun()
+                
         except Exception as e:
             st.error("⛔ Google API Error: Could not save data. The app may be rate-limited. Please wait a minute and try again.")
