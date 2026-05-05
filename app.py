@@ -236,7 +236,7 @@ st.markdown(f"<h1 style='margin-top: 0px; padding-top: 0px;'>{selected_tab}</h1>
 if 'Tab Description' in df_config.columns:
     descriptions = tab_questions['Tab Description'].dropna().unique()
     if len(descriptions) > 0 and str(descriptions[0]).strip() != "":
-        st.markdown(f"<p style='color: #444444; margin-top: -15px; margin-bottom: 20px;'>{str(descriptions[0])}</p>", unsafe_allow_html=True)
+        st.markdown(f"<div style='color: #444444; margin-top: -10px; margin-bottom: 15px;'>{str(descriptions[0])}</div>", unsafe_allow_html=True)
 
 # --- CSS FOR CARD LAYOUT & BUTTONS ---
 st.markdown("""
@@ -250,7 +250,7 @@ st.markdown("""
             border-radius: 12px !important;
             border: 1px solid #e0e6ed !important; 
             box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.04) !important;
-            padding: 30px !important;
+            padding: 20px 25px !important; /* Tightened form padding */
         }
 
         div[data-baseweb="input"], div[data-baseweb="textarea"], div[data-baseweb="select"] {
@@ -266,36 +266,28 @@ st.markdown("""
             background-color: #f0f2f6 !important;
         }
         
-        /* Main Save Buttons (Top/Bottom) */
-        [data-testid="stFormSubmitButton"] button[kind="primaryFormSubmit"] {
-            background-color: #1C83E1 !important; color: #ffffff !important; border: none !important;
-        }
-        [data-testid="stFormSubmitButton"] button[kind="primaryFormSubmit"]:hover {
-            background-color: #1565C0 !important; color: #ffffff !important;
-        }
-        
-        /* Quick Save Buttons (Small & Tightly Spaced) */
-        [data-testid="stFormSubmitButton"] button[kind="secondaryFormSubmit"] {
+        /* Tightly Spaced "Save" Buttons */
+        [data-testid="stFormSubmitButton"] button {
             background-color: #1C83E1 !important; 
             color: #ffffff !important; 
             border: none !important;
             padding: 2px 14px !important;
-            min-height: 28px !important;
+            min-height: 26px !important;
             width: auto !important;
-            margin-top: -10px !important;
-            margin-bottom: -5px !important;
+            margin-top: -15px !important; /* Aggressively pulls tight against input */
+            margin-bottom: 10px !important;
         }
-        [data-testid="stFormSubmitButton"] button[kind="secondaryFormSubmit"] p {
+        [data-testid="stFormSubmitButton"] button p {
             font-size: 0.85em !important;
         }
-        [data-testid="stFormSubmitButton"] button[kind="secondaryFormSubmit"]:hover {
+        [data-testid="stFormSubmitButton"] button:hover {
             background-color: #1565C0 !important; 
             color: #ffffff !important;
         }
         
-        /* UPDATED: Shrink the Native File Uploader Drop-Zone AND Center Contents */
+        /* Shrink the Native File Uploader Drop-Zone AND Center Contents */
         [data-testid="stFileUploadDropzone"] {
-            padding: 10px 15px !important; 
+            padding: 5px 15px !important;  /* Super compressed padding */
             min-height: auto !important;
         }
         
@@ -310,23 +302,19 @@ st.markdown("""
         
         [data-testid="stFileUploader"] button {
             padding: 2px 14px !important;
-            min-height: 28px !important;
+            min-height: 26px !important;
             font-size: 0.85em !important;
-            margin: 0 !important; /* Removes default margins to ensure perfect centering */
+            margin: 0 !important;
         }
         [data-testid="stFileUploader"] small {
             font-size: 0.8em !important;
-            margin-left: 10px !important; /* Adds a clean gap between the button and text */
+            margin-left: 10px !important; 
         }
     </style>
 """, unsafe_allow_html=True)
 
 with st.form(key='dynamic_form'):
 
-    submitted_top = st.form_submit_button("💾 Save Progress", key="save_top", type="primary", use_container_width=True)
-    
-    st.write("") 
-    
     user_responses = {}
     quick_saves = [] 
     is_first_item = True  
@@ -337,10 +325,11 @@ with st.form(key='dynamic_form'):
         input_type = row['Type']
         is_financial = "Expenditure" in selected_tab or "Budget" in selected_tab or "💲" in selected_tab
         
+        # --- SHRUNKEN SUBHEADERS ---
         if input_type == 'subheader':
             if not is_first_item:
-                st.markdown("<hr style='margin-top: 25px; margin-bottom: 15px; border-color: #e0e6ed;'>", unsafe_allow_html=True) 
-            st.markdown(f"<h3 style='margin-top: 0px; margin-bottom: 10px;'>{label}</h3>", unsafe_allow_html=True)
+                st.markdown("<hr style='margin-top: 15px; margin-bottom: 10px; border-color: #e0e6ed;'>", unsafe_allow_html=True) 
+            st.markdown(f"<div style='font-size: 1.1em; font-weight: bold; color: #1C83E1; margin-bottom: 8px;'>{label}</div>", unsafe_allow_html=True)
             is_first_item = False
             continue 
             
@@ -351,21 +340,22 @@ with st.form(key='dynamic_form'):
             
         clean_current_val = format_cell_value(raw_current_val)
 
+        # --- SHRUNKEN QUESTION LABELS ---
         display_label = str(label).replace("**", "").strip()
+        label_html = ""
         
         if "•" in display_label:
             parts = display_label.split("•")
-            formatted_label = f"**{parts[0].strip()}**\n" 
+            label_html += f"<div style='font-size: 0.85em; font-weight: 600; color: #333333; margin-bottom: 4px;'>{parts[0].strip()}</div>"
             for part in parts[1:]:
                 if part.strip(): 
-                    formatted_label += f"* **{part.strip()}**\n" 
-            st.markdown(formatted_label)
+                    label_html += f"<div style='font-size: 0.85em; font-weight: 600; color: #333333; margin-left: 15px; margin-bottom: 2px;'>• {part.strip()}</div>"
         else:
-            formatted_parts = []
             for line in display_label.split('\n'):
                 if line.strip(): 
-                    formatted_parts.append(f"**{line.strip()}**")
-            st.markdown("  \n\n".join(formatted_parts))
+                    label_html += f"<div style='font-size: 0.85em; font-weight: 600; color: #333333; margin-bottom: 4px;'>{line.strip()}</div>"
+        
+        st.markdown(label_html, unsafe_allow_html=True)
 
         if 'Previous_Col' in row and pd.notna(row['Previous_Col']):
             prev_col_name = str(row['Previous_Col']).strip()
@@ -378,9 +368,9 @@ with st.form(key='dynamic_form'):
                     display_prev_text = clean_prev_val.replace('\n', '<br>')
                     if is_financial:
                         display_prev = format_currency(clean_prev_val)
-                        st.markdown(f"<div style='color: #444444; font-size: 0.85em; margin-top: -10px; margin-bottom: 5px;'>💰 <b>Last Year's Total:</b>{separator}{display_prev}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='color: #555555; font-size: 0.85em; margin-bottom: 5px;'>💰 <b>Last Year's Total:</b>{separator}{display_prev}</div>", unsafe_allow_html=True)
                     else:
-                        st.markdown(f"<div style='color: #444444; font-size: 0.85em; margin-top: -10px; margin-bottom: 5px;'>🗓️ <b>Last year's response:</b>{separator}{display_prev_text}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='color: #555555; font-size: 0.85em; margin-bottom: 5px;'>🗓️ <b>Last year's response:</b>{separator}{display_prev_text}</div>", unsafe_allow_html=True)
 
         if 'JLHA_Col' in df_config.columns and 'JLHA_Col' in row and pd.notna(row['JLHA_Col']):
             jlha_col_name = str(row['JLHA_Col']).strip()
@@ -393,10 +383,11 @@ with st.form(key='dynamic_form'):
                     display_jlha_text = clean_jlha_val.replace('\n', '<br>')
                     if is_financial:
                         display_jlha = format_currency(clean_jlha_val)
-                        st.markdown(f"<div style='color: #444444; font-size: 0.85em; margin-top: -5px; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='color: #555555; font-size: 0.85em; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha}</div>", unsafe_allow_html=True)
                     else:
-                        st.markdown(f"<div style='color: #444444; font-size: 0.85em; margin-top: -5px; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha_text}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='color: #555555; font-size: 0.85em; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha_text}</div>", unsafe_allow_html=True)
 
+        # WIDGET RENDERING
         if input_type == 'text':
              user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
              
@@ -405,7 +396,7 @@ with st.form(key='dynamic_form'):
              
         elif input_type == 'file_upload':
              if clean_current_val != "":
-                 st.markdown(f"<div style='font-size: 0.85em; margin-bottom: 10px; padding: 10px; background-color: #f0f2f6; border-radius: 6px;'>📎 <b>Current File:</b> <a href='{clean_current_val}' target='_blank'>View Uploaded Document</a><br><span style='color: #666; font-size: 0.9em;'>Upload a new file below to overwrite the current one.</span></div>", unsafe_allow_html=True)
+                 st.markdown(f"<div style='font-size: 0.85em; margin-bottom: 5px; padding: 10px; background-color: #f0f2f6; border-radius: 6px;'>📎 <b>Current File:</b> <a href='{clean_current_val}' target='_blank'>View Uploaded Document</a><br><span style='color: #666; font-size: 0.9em;'>Upload a new file below to overwrite the current one.</span></div>", unsafe_allow_html=True)
              user_responses[col_name] = st.file_uploader(label="hidden_label", label_visibility="collapsed", key=col_name)
              
         elif input_type == 'readonly':
@@ -416,13 +407,14 @@ with st.form(key='dynamic_form'):
                      display_text = format_cell_value(df_data.at[user_row_index, prev_col_name])
              
              if display_text == "":
-                 display_text = "*None*"
+                 display_text = "None"
                  
              display_text = re.sub(r'(?i)(\d+\s*BMPs completed:)', r'<u>**\1**</u>', display_text)
              display_text = re.sub(r'(?i)(BMPs in progress:)', r'<u>**\1**</u>', display_text)
-             display_text = display_text.replace('\n', '  \n')
+             display_text = display_text.replace('\n', '<br>')
              
-             st.markdown(display_text, unsafe_allow_html=True)
+             # Wrap read-only text in the standard 0.85em size for consistency!
+             st.markdown(f"<div style='font-size: 0.85em; color: #444444; margin-bottom: 10px; font-style: italic;'>{display_text}</div>", unsafe_allow_html=True)
                  
         elif input_type == 'dropdown':
             options_str = str(row['Options']) if pd.notna(row['Options']) else ""
@@ -452,7 +444,7 @@ with st.form(key='dynamic_form'):
         elif input_type == 'date':
              user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
         
-        # --- PEEK-AHEAD LOGIC FOR THE QUICK SAVE BUTTON ---
+        # --- PEEK-AHEAD LOGIC FOR THE NEW TIGHT "SAVE" BUTTON ---
         if input_type not in ['subheader', 'readonly']:
             hide_quick_save = False
             
@@ -462,14 +454,20 @@ with st.form(key='dynamic_form'):
                     hide_quick_save = True
                     
             if not hide_quick_save:
-                qs = st.form_submit_button("💾 Quick Save", key=f"qs_{col_name}", type="secondary")
+                qs = st.form_submit_button("💾 Save", key=f"qs_{col_name}", type="secondary")
                 quick_saves.append(qs)
             
         is_first_item = False 
     
-    submitted_bottom = st.form_submit_button("💾 Save Progress", key="save_bottom", type="primary", use_container_width=True)
+    # --- SAFETY NET FOR EMPTY TABS ---
+    # If the tab has zero actionable questions (like a Read-Only info page), Streamlit will crash without a button.
+    # This spawns a safety button ONLY if no others were generated.
+    if not quick_saves:
+        fallback_save = st.form_submit_button("💾 Save Progress", type="primary")
+        quick_saves.append(fallback_save)
     
-    if submitted_top or submitted_bottom or any(quick_saves):
+    # --- CHECK IF ANY SAVE BUTTON WAS CLICKED ---
+    if any(quick_saves):
         headers_list = list(headers)
         final_responses = {}
         drive_service = None
