@@ -8,7 +8,8 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
 # --- CONSTANTS ---
-FOLDER_ID = '0AHdnucXOxMoCUk9PVA'
+# This is now the FALLBACK folder if a specific client folder isn't set up yet!
+DEFAULT_FOLDER_ID = '0AHdnucXOxMoCUk9PVA'
 DRIVE_SCOPES = ['https://www.googleapis.com/auth/drive.file'] 
 
 # --- HELPER FUNCTIONS FOR FORMATTING ---
@@ -54,13 +55,13 @@ def authenticate_drive():
     service = build('drive', 'v3', credentials=creds)
     return service
 
-def upload_to_drive(file, service):
+# UPDATED: Now accepts a dynamic folder_id!
+def upload_to_drive(file, service, folder_id):
     file_metadata = {
         'name': file.name,
-        'parents': [FOLDER_ID]
+        'parents': [folder_id]
     }
     
-    # Wrap the Streamlit file safely in BytesIO for Google's API
     file_bytes = io.BytesIO(file.getvalue())
     
     media = MediaIoBaseUpload(
@@ -69,7 +70,6 @@ def upload_to_drive(file, service):
         resumable=True
     )
     
-    # Added supportsAllDrives=True which is strictly required for Shared Drives!
     uploaded_file = service.files().create(
         body=file_metadata,
         media_body=media,
@@ -98,7 +98,7 @@ if not user_token:
     st.stop()
 
 # --- THE ROUTER ---
-# 3. READ DIRECTORY TO FIND THE USER'S COUNTY
+# 3. READ DIRECTORY TO FIND THE USER'S COUNTY & DYNAMIC FOLDER
 try:
     df_directory = conn.read(worksheet="Directory", ttl="10m")
     df_directory['Token'] = df_directory['Token'].astype(str)
@@ -113,6 +113,14 @@ if user_info.empty:
 
 current_client_name = user_info['Client'].iloc[0]
 user_county = user_info['County'].iloc[0] 
+
+# --- NEW: DYNAMIC FOLDER ROUTING LOGIC ---
+# Checks if the Drive_Folder_ID column exists and has a value for this user
+if 'Drive_Folder_ID' in user_info.columns and pd.notna(user_info['Drive_Folder_ID'].iloc[0]):
+    custom_folder = str(user_info['Drive_Folder_ID'].iloc[0]).strip()
+    client_folder_id = custom_folder if custom_folder != "" else DEFAULT_FOLDER_ID
+else:
+    client_folder_id = DEFAULT_FOLDER_ID
 
 # 4. LOAD THE DATA SAFELY
 try:
@@ -504,10 +512,10 @@ with st.form(key='dynamic_form'):
                 if raw_val is not None:
                     with st.spinner(f"Uploading file for '{row['Label']}'..."):
                         try:
-                            file_id = upload_to_drive(raw_val, drive_service)
+                            # UPDATED: Passing the custom client folder ID instead of the default!
+                            file_id = upload_to_drive(raw_val, drive_service, client_folder_id)
                             final_responses[col] = f"https://drive.google.com/file/d/{file_id}/view"
                         except Exception as e:
-                            # Safely catch the error without breaking the app
                             st.error(f"⛔ Google Drive Error on '{raw_val.name}': {str(e)}")
                             final_responses[col] = df_data.at[user_row_index, col] 
                             upload_failed = True
@@ -550,7 +558,6 @@ with st.form(key='dynamic_form'):
                 conn.update(worksheet=f"{user_county}_Data", data=df_to_save)
                 st.cache_data.clear()
             
-            # --- UPDATED: Prevent silent refresh if there is an error ---
             if upload_failed:
                 st.warning("⚠️ Your text data was safely saved to the spreadsheet, but the file upload failed. Please check the error messages above or verify your Google Drive permissions.")
             else:
