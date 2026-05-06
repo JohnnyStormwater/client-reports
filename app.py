@@ -303,7 +303,7 @@ st.markdown("""
             color: #ffffff !important;
         }
         
-        /* Strip backgrounds from File Uploader Drop-Zone */
+        /* Strip background from the massive File Uploader Drop-Zone */
         [data-testid="stFileUploadDropzone"] {
             background-color: transparent !important;
             border: none !important;
@@ -320,24 +320,15 @@ st.markdown("""
             width: 100% !important;
         }
         
-        /* NEW: Completely strip the gray box off the Upload button itself */
+        /* RESTORED: Keep the native box around the 'Browse files' button, just make it small! */
         [data-testid="stFileUploader"] button {
-            padding: 2px 0px !important; /* Removed side padding so it sits flush */
+            padding: 2px 14px !important;
             min-height: 26px !important;
-            font-size: 0.88em !important;
+            font-size: 0.85em !important;
             margin: 0 !important;
-            border: none !important;
-            background-color: transparent !important;
-            color: #1C83E1 !important; /* Make it your brand blue */
-            font-weight: bold !important;
-            box-shadow: none !important;
-        }
-        [data-testid="stFileUploader"] button:hover {
-            color: #1565C0 !important; /* Darker blue on hover */
-            background-color: transparent !important;
         }
         
-        /* NEW: Strip the gray box from the attached file card */
+        /* Strip the gray box from the attached file card */
         [data-testid="stUploadedFile"] {
             background-color: transparent !important;
             border: none !important;
