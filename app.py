@@ -55,7 +55,6 @@ def authenticate_drive():
     service = build('drive', 'v3', credentials=creds)
     return service
 
-# UPDATED: Now accepts a dynamic folder_id!
 def upload_to_drive(file, service, folder_id):
     file_metadata = {
         'name': file.name,
@@ -114,8 +113,7 @@ if user_info.empty:
 current_client_name = user_info['Client'].iloc[0]
 user_county = user_info['County'].iloc[0] 
 
-# --- NEW: DYNAMIC FOLDER ROUTING LOGIC ---
-# Checks if the Drive_Folder_ID column exists and has a value for this user
+# --- DYNAMIC FOLDER ROUTING LOGIC ---
 if 'Drive_Folder_ID' in user_info.columns and pd.notna(user_info['Drive_Folder_ID'].iloc[0]):
     custom_folder = str(user_info['Drive_Folder_ID'].iloc[0]).strip()
     client_folder_id = custom_folder if custom_folder != "" else DEFAULT_FOLDER_ID
@@ -307,16 +305,19 @@ st.markdown("""
             color: #ffffff !important;
         }
         
-        /* File Uploader Styles */
+        /* UPDATED: Strip backgrounds from File Uploader Drop-Zone */
         [data-testid="stFileUploadDropzone"] {
-            padding: 5px 15px !important;  
+            background-color: transparent !important;
+            border: none !important;
+            padding: 0px !important;  
             min-height: auto !important;
         }
         
+        /* Center Contents */
         [data-testid="stFileUploadDropzone"] > div {
             display: flex !important;
             flex-direction: row !important;
-            justify-content: center !important;
+            justify-content: flex-start !important; /* Changed to flex-start so it aligns with the rest of the form */
             align-items: center !important;
             width: 100% !important;
         }
@@ -414,7 +415,8 @@ with st.form(key='dynamic_form'):
              
         elif input_type == 'file_upload':
              if clean_current_val != "":
-                 st.markdown(f"<div style='font-size: 0.88em; margin-bottom: 5px; padding: 10px; background-color: #f0f2f6; border-radius: 6px;'>📎 <b>Current File:</b> <a href='{clean_current_val}' target='_blank'>View Uploaded Document</a><br><span style='color: #666; font-size: 0.9em;'>Upload a new file below to overwrite the current one.</span></div>", unsafe_allow_html=True)
+                 # UPDATED: Stripped out the background color, padding, and border radius from this HTML box
+                 st.markdown(f"<div style='font-size: 0.88em; margin-bottom: 5px;'>📎 <b>Current File:</b> <a href='{clean_current_val}' target='_blank'>View Uploaded Document</a><br><span style='color: #666; font-size: 0.9em;'>Upload a new file below to overwrite the current one.</span></div>", unsafe_allow_html=True)
              user_responses[col_name] = st.file_uploader(label="hidden_label", label_visibility="collapsed", key=col_name)
              
         elif input_type == 'readonly':
@@ -512,7 +514,6 @@ with st.form(key='dynamic_form'):
                 if raw_val is not None:
                     with st.spinner(f"Uploading file for '{row['Label']}'..."):
                         try:
-                            # UPDATED: Passing the custom client folder ID instead of the default!
                             file_id = upload_to_drive(raw_val, drive_service, client_folder_id)
                             final_responses[col] = f"https://drive.google.com/file/d/{file_id}/view"
                         except Exception as e:
