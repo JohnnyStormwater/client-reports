@@ -384,12 +384,14 @@ with st.form(key='dynamic_form'):
         
         st.markdown(label_html, unsafe_allow_html=True)
 
+        # --- UPDATED: Hide Previous_Col specifically for file_uploads ---
         if 'Previous_Col' in row and pd.notna(row['Previous_Col']):
             prev_col_name = str(row['Previous_Col']).strip()
             if prev_col_name in df_data.columns:
                 raw_prev_val = df_data.at[user_row_index, prev_col_name]
                 clean_prev_val = format_cell_value(raw_prev_val)
-                if clean_prev_val != "" and input_type != 'readonly':
+                # Added 'file_upload' to the exclusion list!
+                if clean_prev_val != "" and input_type not in ['readonly', 'file_upload']:
                     has_line_breaks = '\n' in clean_prev_val
                     separator = "<br>" if has_line_breaks else " "
                     display_prev_text = clean_prev_val.replace('\n', '<br>')
@@ -404,7 +406,8 @@ with st.form(key='dynamic_form'):
             if jlha_col_name in df_data.columns:
                 raw_jlha_val = df_data.at[user_row_index, jlha_col_name]
                 clean_jlha_val = format_cell_value(raw_jlha_val)
-                if clean_jlha_val != "" and input_type != 'readonly':
+                # Same exclusion added here just in case!
+                if clean_jlha_val != "" and input_type not in ['readonly', 'file_upload']:
                     has_line_breaks = '\n' in clean_jlha_val
                     separator = "<br>" if has_line_breaks else " "
                     display_jlha_text = clean_jlha_val.replace('\n', '<br>')
