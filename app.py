@@ -8,7 +8,6 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
 # --- CONSTANTS ---
-# This is now the FALLBACK folder if a specific client folder isn't set up yet!
 DEFAULT_FOLDER_ID = '0AHdnucXOxMoCUk9PVA'
 DRIVE_SCOPES = ['https://www.googleapis.com/auth/drive.file'] 
 
@@ -97,7 +96,6 @@ if not user_token:
     st.stop()
 
 # --- THE ROUTER ---
-# 3. READ DIRECTORY TO FIND THE USER'S COUNTY & DYNAMIC FOLDER
 try:
     df_directory = conn.read(worksheet="Directory", ttl="10m")
     df_directory['Token'] = df_directory['Token'].astype(str)
@@ -305,7 +303,7 @@ st.markdown("""
             color: #ffffff !important;
         }
         
-        /* UPDATED: Strip backgrounds from File Uploader Drop-Zone */
+        /* Strip backgrounds from File Uploader Drop-Zone */
         [data-testid="stFileUploadDropzone"] {
             background-color: transparent !important;
             border: none !important;
@@ -317,17 +315,35 @@ st.markdown("""
         [data-testid="stFileUploadDropzone"] > div {
             display: flex !important;
             flex-direction: row !important;
-            justify-content: flex-start !important; /* Changed to flex-start so it aligns with the rest of the form */
+            justify-content: flex-start !important; 
             align-items: center !important;
             width: 100% !important;
         }
         
+        /* NEW: Completely strip the gray box off the Upload button itself */
         [data-testid="stFileUploader"] button {
-            padding: 2px 14px !important;
+            padding: 2px 0px !important; /* Removed side padding so it sits flush */
             min-height: 26px !important;
-            font-size: 0.85em !important;
+            font-size: 0.88em !important;
             margin: 0 !important;
+            border: none !important;
+            background-color: transparent !important;
+            color: #1C83E1 !important; /* Make it your brand blue */
+            font-weight: bold !important;
+            box-shadow: none !important;
         }
+        [data-testid="stFileUploader"] button:hover {
+            color: #1565C0 !important; /* Darker blue on hover */
+            background-color: transparent !important;
+        }
+        
+        /* NEW: Strip the gray box from the attached file card */
+        [data-testid="stUploadedFile"] {
+            background-color: transparent !important;
+            border: none !important;
+            padding: 0px !important;
+        }
+
         [data-testid="stFileUploader"] small {
             font-size: 0.8em !important;
             margin-left: 10px !important; 
@@ -415,7 +431,6 @@ with st.form(key='dynamic_form'):
              
         elif input_type == 'file_upload':
              if clean_current_val != "":
-                 # UPDATED: Stripped out the background color, padding, and border radius from this HTML box
                  st.markdown(f"<div style='font-size: 0.88em; margin-bottom: 5px;'>📎 <b>Current File:</b> <a href='{clean_current_val}' target='_blank'>View Uploaded Document</a><br><span style='color: #666; font-size: 0.9em;'>Upload a new file below to overwrite the current one.</span></div>", unsafe_allow_html=True)
              user_responses[col_name] = st.file_uploader(label="hidden_label", label_visibility="collapsed", key=col_name)
              
