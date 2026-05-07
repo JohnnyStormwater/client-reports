@@ -303,15 +303,31 @@ st.markdown("""
             color: #ffffff !important;
         }
         
-        /* Strip background from the massive File Uploader Drop-Zone */
+        /* Expander / Accordion Styles */
+        [data-testid="stExpander"] {
+            border: 1px solid #e0e6ed !important;
+            border-radius: 6px !important;
+            margin-bottom: 15px !important;
+            background-color: #fafbfc !important;
+        }
+        [data-testid="stExpander"] summary {
+            color: #1C83E1 !important;
+            font-weight: 600 !important;
+            font-size: 0.9em !important;
+            padding-top: 5px !important;
+            padding-bottom: 5px !important;
+        }
+        [data-testid="stExpander"] summary:hover {
+            color: #1565C0 !important;
+        }
+        
+        /* File Uploader Styles */
         [data-testid="stFileUploadDropzone"] {
             background-color: transparent !important;
             border: none !important;
             padding: 0px !important;  
             min-height: auto !important;
         }
-        
-        /* Center Contents */
         [data-testid="stFileUploadDropzone"] > div {
             display: flex !important;
             flex-direction: row !important;
@@ -319,22 +335,17 @@ st.markdown("""
             align-items: center !important;
             width: 100% !important;
         }
-        
-        /* RESTORED: Keep the native box around the 'Browse files' button, just make it small! */
         [data-testid="stFileUploader"] button {
             padding: 2px 14px !important;
             min-height: 26px !important;
             font-size: 0.85em !important;
             margin: 0 !important;
         }
-        
-        /* Strip the gray box from the attached file card */
         [data-testid="stUploadedFile"] {
             background-color: transparent !important;
             border: none !important;
             padding: 0px !important;
         }
-
         [data-testid="stFileUploader"] small {
             font-size: 0.8em !important;
             margin-left: 10px !important; 
@@ -384,13 +395,11 @@ with st.form(key='dynamic_form'):
         
         st.markdown(label_html, unsafe_allow_html=True)
 
-        # --- UPDATED: Hide Previous_Col specifically for file_uploads ---
         if 'Previous_Col' in row and pd.notna(row['Previous_Col']):
             prev_col_name = str(row['Previous_Col']).strip()
             if prev_col_name in df_data.columns:
                 raw_prev_val = df_data.at[user_row_index, prev_col_name]
                 clean_prev_val = format_cell_value(raw_prev_val)
-                # Added 'file_upload' to the exclusion list!
                 if clean_prev_val != "" and input_type not in ['readonly', 'file_upload']:
                     has_line_breaks = '\n' in clean_prev_val
                     separator = "<br>" if has_line_breaks else " "
@@ -406,7 +415,6 @@ with st.form(key='dynamic_form'):
             if jlha_col_name in df_data.columns:
                 raw_jlha_val = df_data.at[user_row_index, jlha_col_name]
                 clean_jlha_val = format_cell_value(raw_jlha_val)
-                # Same exclusion added here just in case!
                 if clean_jlha_val != "" and input_type not in ['readonly', 'file_upload']:
                     has_line_breaks = '\n' in clean_jlha_val
                     separator = "<br>" if has_line_breaks else " "
@@ -443,7 +451,9 @@ with st.form(key='dynamic_form'):
              display_text = re.sub(r'(?i)(<b>)?(BMPs in progress:)(</b>)?', r'<u><b>\2</b></u>', display_text)
              display_text = display_text.replace('\n', '<br>')
              
-             st.markdown(f"<div style='font-size: 0.92em; color: #000000; margin-bottom: 15px; line-height: 1.5;'>{display_text}</div>", unsafe_allow_html=True)
+             # --- UPDATED: Wrapped the Read-Only text inside an Expander ---
+             with st.expander("📄 View / Hide Reference List"):
+                 st.markdown(f"<div style='font-size: 0.92em; color: #000000; margin-bottom: 5px; line-height: 1.5;'>{display_text}</div>", unsafe_allow_html=True)
                  
         elif input_type == 'dropdown':
             options_str = str(row['Options']) if pd.notna(row['Options']) else ""
