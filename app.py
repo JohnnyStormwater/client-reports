@@ -321,13 +321,15 @@ st.markdown("""
             color: #1565C0 !important;
         }
         
-        /* File Uploader Styles */
+        /* Strip background from File Uploader Drop-Zone */
         [data-testid="stFileUploadDropzone"] {
             background-color: transparent !important;
             border: none !important;
             padding: 0px !important;  
             min-height: auto !important;
         }
+        
+        /* Center Contents */
         [data-testid="stFileUploadDropzone"] > div {
             display: flex !important;
             flex-direction: row !important;
@@ -335,17 +337,22 @@ st.markdown("""
             align-items: center !important;
             width: 100% !important;
         }
+        
+        /* Keep the native box around the 'Browse files' button */
         [data-testid="stFileUploader"] button {
             padding: 2px 14px !important;
             min-height: 26px !important;
             font-size: 0.85em !important;
             margin: 0 !important;
         }
+        
+        /* Strip the gray box from the attached file card */
         [data-testid="stUploadedFile"] {
             background-color: transparent !important;
             border: none !important;
             padding: 0px !important;
         }
+
         [data-testid="stFileUploader"] small {
             font-size: 0.8em !important;
             margin-left: 10px !important; 
@@ -451,8 +458,19 @@ with st.form(key='dynamic_form'):
              display_text = re.sub(r'(?i)(<b>)?(BMPs in progress:)(</b>)?', r'<u><b>\2</b></u>', display_text)
              display_text = display_text.replace('\n', '<br>')
              
-             # --- UPDATED: Wrapped the Read-Only text inside an Expander ---
-             with st.expander("📄 View / Hide Reference List"):
+             # --- DYNAMIC EXPANDER TITLE WITH CUSTOM TITLE CASE LOGIC ---
+             # Removes anything in parentheses and strips trailing spaces and colons
+             clean_label = re.sub(r'\(.*?\)', '', str(label)).strip(' :')
+             
+             if clean_label:
+                 # Capitalizes only the first letter, preserves the rest of the word exactly to protect acronyms
+                 title_cased_words = [word[0].upper() + word[1:] for word in clean_label.split() if word]
+                 final_label = " ".join(title_cased_words)
+                 expander_title = f"📄 View / Hide Reference List of {final_label}"
+             else:
+                 expander_title = "📄 View / Hide Reference List"
+             
+             with st.expander(expander_title):
                  st.markdown(f"<div style='font-size: 0.92em; color: #000000; margin-bottom: 5px; line-height: 1.5;'>{display_text}</div>", unsafe_allow_html=True)
                  
         elif input_type == 'dropdown':
