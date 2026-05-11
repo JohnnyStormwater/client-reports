@@ -265,6 +265,12 @@ st.markdown("""
         div[data-baseweb="input"]:focus-within, div[data-baseweb="textarea"]:focus-within, div[data-baseweb="select"]:focus-within {
             border-color: #1C83E1 !important; box-shadow: 0 0 8px rgba(28, 131, 225, 0.3) !important;
         }
+        div[data-baseweb="input"] input:placeholder-shown, div[data-baseweb="textarea"] textarea:placeholder-shown {
+            background-color: #ffffff !important;
+        }
+        div[data-baseweb="input"] input:not(:placeholder-shown), div[data-baseweb="textarea"] textarea:not(:placeholder-shown) {
+            background-color: #f0f2f6 !important;
+        }
         
         /* Save Buttons */
         [data-testid="stFormSubmitButton"] button[kind="primaryFormSubmit"] {
@@ -303,7 +309,7 @@ st.markdown("""
         [data-testid="stExpander"] summary {
             color: #1C83E1 !important;
             font-weight: 700 !important;
-            font-size: 1.05em !important; /* Larger font for main sections */
+            font-size: 1.05em !important; 
             padding-top: 10px !important;
             padding-bottom: 10px !important;
         }
@@ -376,7 +382,8 @@ with st.form(key='dynamic_form'):
             if group_name != current_expander_name:
                 current_expander_name = group_name
                 if current_expander_name:
-                    current_container = st.expander(current_expander_name, expanded=True)
+                    # UPDATED: Set expanded=False so they default to collapsed!
+                    current_container = st.expander(current_expander_name, expanded=False)
                 else:
                     current_container = st.container()
 
@@ -482,8 +489,7 @@ with st.form(key='dynamic_form'):
                  else:
                      expander_title = "📄 View / Hide Reference List"
                  
-                 # --- PURE HTML EXPANDER LOGIC TO PREVENT CRASHES ---
-                 # We inject a raw HTML <details> block instead of st.expander to bypass the nesting error
+                 # HTML <details> block instead of st.expander
                  html_expander = f"""
                  <details class="custom-expander">
                     <summary>{expander_title}</summary>
