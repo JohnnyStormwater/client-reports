@@ -80,7 +80,6 @@ def upload_to_drive(file, service, folder_id):
 # 1. SETUP & CONNECTION
 st.set_page_config(page_title="Client Reporting Portal", layout="wide")
 
-# --- CELEBRATION TRIGGER ---
 if st.session_state.get('show_celebration', False):
     st.balloons()  
     st.session_state['show_celebration'] = False
@@ -111,7 +110,6 @@ if user_info.empty:
 current_client_name = user_info['Client'].iloc[0]
 user_county = user_info['County'].iloc[0] 
 
-# --- DYNAMIC FOLDER ROUTING LOGIC ---
 if 'Drive_Folder_ID' in user_info.columns and pd.notna(user_info['Drive_Folder_ID'].iloc[0]):
     custom_folder = str(user_info['Drive_Folder_ID'].iloc[0]).strip()
     client_folder_id = custom_folder if custom_folder != "" else DEFAULT_FOLDER_ID
@@ -176,7 +174,6 @@ for t in tabs:
 
 overall_percent = int((filled_overall_questions / total_overall_questions) * 100) if total_overall_questions > 0 else 100
 
-
 # 6. SIDEBAR NAVIGATION
 if user_county == "OC":
     sidebar_icon = "🍊"
@@ -204,7 +201,6 @@ overall_progress_html = f"""
 </div>
 """
 st.sidebar.markdown(overall_progress_html, unsafe_allow_html=True)
-
 
 # --- SECTION PROGRESS TRACKER LOGIC ---
 tab_questions = df_config[df_config['Tab'] == selected_tab]
@@ -269,14 +265,8 @@ st.markdown("""
         div[data-baseweb="input"]:focus-within, div[data-baseweb="textarea"]:focus-within, div[data-baseweb="select"]:focus-within {
             border-color: #1C83E1 !important; box-shadow: 0 0 8px rgba(28, 131, 225, 0.3) !important;
         }
-        div[data-baseweb="input"] input:placeholder-shown, div[data-baseweb="textarea"] textarea:placeholder-shown {
-            background-color: #ffffff !important;
-        }
-        div[data-baseweb="input"] input:not(:placeholder-shown), div[data-baseweb="textarea"] textarea:not(:placeholder-shown) {
-            background-color: #f0f2f6 !important;
-        }
         
-        /* Main Save Buttons */
+        /* Save Buttons */
         [data-testid="stFormSubmitButton"] button[kind="primaryFormSubmit"] {
             background-color: #1C83E1 !important; color: #ffffff !important; border: none !important;
         }
@@ -284,7 +274,6 @@ st.markdown("""
             background-color: #1565C0 !important; color: #ffffff !important;
         }
         
-        /* Tightly Spaced "Save" Buttons */
         [data-testid="stFormSubmitButton"] button[kind="secondaryFormSubmit"] {
             background-color: #1C83E1 !important; 
             color: #ffffff !important; 
@@ -303,33 +292,49 @@ st.markdown("""
             color: #ffffff !important;
         }
         
-        /* Expander / Accordion Styles */
+        /* --- NATIVE EXPANDER (For the big section blocks) --- */
         [data-testid="stExpander"] {
             border: 1px solid #e0e6ed !important;
-            border-radius: 6px !important;
-            margin-bottom: 15px !important;
-            background-color: #fafbfc !important;
+            border-radius: 8px !important;
+            margin-bottom: 20px !important;
+            background-color: #ffffff !important;
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.02) !important;
         }
         [data-testid="stExpander"] summary {
             color: #1C83E1 !important;
-            font-weight: 600 !important;
-            font-size: 0.9em !important;
-            padding-top: 5px !important;
-            padding-bottom: 5px !important;
-        }
-        [data-testid="stExpander"] summary:hover {
-            color: #1565C0 !important;
+            font-weight: 700 !important;
+            font-size: 1.05em !important; /* Larger font for main sections */
+            padding-top: 10px !important;
+            padding-bottom: 10px !important;
         }
         
-        /* Strip background from File Uploader Drop-Zone */
+        /* --- HTML DETAILS (For the nested Read-Only blocks) --- */
+        details.custom-expander {
+            border: 1px solid #e0e6ed;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            background-color: #fafbfc;
+            padding: 10px 15px;
+            transition: all 0.2s ease-in-out;
+        }
+        details.custom-expander summary {
+            color: #1C83E1;
+            font-weight: 600;
+            font-size: 0.9em;
+            cursor: pointer;
+            outline: none;
+        }
+        details.custom-expander summary:hover {
+            color: #1565C0;
+        }
+        
+        /* File Uploader Styles */
         [data-testid="stFileUploadDropzone"] {
             background-color: transparent !important;
             border: none !important;
             padding: 0px !important;  
             min-height: auto !important;
         }
-        
-        /* Center Contents */
         [data-testid="stFileUploadDropzone"] > div {
             display: flex !important;
             flex-direction: row !important;
@@ -337,25 +342,16 @@ st.markdown("""
             align-items: center !important;
             width: 100% !important;
         }
-        
-        /* Keep the native box around the 'Browse files' button */
         [data-testid="stFileUploader"] button {
             padding: 2px 14px !important;
             min-height: 26px !important;
             font-size: 0.85em !important;
             margin: 0 !important;
         }
-        
-        /* Strip the gray box from the attached file card */
         [data-testid="stUploadedFile"] {
             background-color: transparent !important;
             border: none !important;
             padding: 0px !important;
-        }
-
-        [data-testid="stFileUploader"] small {
-            font-size: 0.8em !important;
-            margin-left: 10px !important; 
         }
     </style>
 """, unsafe_allow_html=True)
@@ -365,156 +361,180 @@ with st.form(key='dynamic_form'):
     user_responses = {}
     quick_saves = [] 
     is_first_item = True  
+    
+    current_expander_name = None
+    current_container = st.container()
 
     for i, (index, row) in enumerate(tab_questions.iterrows()):
-        col_name = row['Column Name']
-        label = row['Label']
-        input_type = row['Type']
-        is_financial = "Expenditure" in selected_tab or "Budget" in selected_tab or "💲" in selected_tab
         
-        if input_type == 'subheader':
-            if not is_first_item:
-                st.markdown("<hr style='margin-top: 15px; margin-bottom: 10px; border-color: #e0e6ed;'>", unsafe_allow_html=True) 
-            st.markdown(f"<div style='font-size: 1.1em; font-weight: bold; color: #1C83E1; margin-bottom: 8px;'>{label}</div>", unsafe_allow_html=True)
-            is_first_item = False
-            continue 
+        # --- DYNAMIC ACCORDION (EXPANDER) ROUTING ---
+        if 'Expander_Group' in df_config.columns:
+            group_val = row.get('Expander_Group')
+            group_name = str(group_val).strip() if pd.notna(group_val) and str(group_val).strip() != "" else None
             
-        if col_name in df_data.columns:
-            raw_current_val = df_data.at[user_row_index, col_name]
-        else:
-            raw_current_val = ""
-            
-        clean_current_val = format_cell_value(raw_current_val)
-
-        display_label = str(label).replace("**", "").strip()
-        label_html = ""
-        
-        if "•" in display_label:
-            parts = display_label.split("•")
-            label_html += f"<div style='font-size: 0.92em; font-weight: 600; color: #111111; margin-bottom: 4px;'>{parts[0].strip()}</div>"
-            for part in parts[1:]:
-                if part.strip(): 
-                    label_html += f"<div style='font-size: 0.92em; font-weight: 600; color: #111111; margin-left: 15px; margin-bottom: 2px;'>• {part.strip()}</div>"
-        else:
-            for line in display_label.split('\n'):
-                if line.strip(): 
-                    label_html += f"<div style='font-size: 0.92em; font-weight: 600; color: #111111; margin-bottom: 4px;'>{line.strip()}</div>"
-        
-        st.markdown(label_html, unsafe_allow_html=True)
-
-        if 'Previous_Col' in row and pd.notna(row['Previous_Col']):
-            prev_col_name = str(row['Previous_Col']).strip()
-            if prev_col_name in df_data.columns:
-                raw_prev_val = df_data.at[user_row_index, prev_col_name]
-                clean_prev_val = format_cell_value(raw_prev_val)
-                if clean_prev_val != "" and input_type not in ['readonly', 'file_upload']:
-                    has_line_breaks = '\n' in clean_prev_val
-                    separator = "<br>" if has_line_breaks else " "
-                    display_prev_text = clean_prev_val.replace('\n', '<br>')
-                    if is_financial:
-                        display_prev = format_currency(clean_prev_val)
-                        st.markdown(f"<div style='color: #555555; font-size: 0.88em; margin-bottom: 5px;'>💰 <b>Last Year's Total:</b>{separator}{display_prev}</div>", unsafe_allow_html=True)
-                    else:
-                        st.markdown(f"<div style='color: #555555; font-size: 0.88em; margin-bottom: 5px;'>🗓️ <b>Last year's response:</b>{separator}{display_prev_text}</div>", unsafe_allow_html=True)
-
-        if 'JLHA_Col' in df_config.columns and 'JLHA_Col' in row and pd.notna(row['JLHA_Col']):
-            jlha_col_name = str(row['JLHA_Col']).strip()
-            if jlha_col_name in df_data.columns:
-                raw_jlha_val = df_data.at[user_row_index, jlha_col_name]
-                clean_jlha_val = format_cell_value(raw_jlha_val)
-                if clean_jlha_val != "" and input_type not in ['readonly', 'file_upload']:
-                    has_line_breaks = '\n' in clean_jlha_val
-                    separator = "<br>" if has_line_breaks else " "
-                    display_jlha_text = clean_jlha_val.replace('\n', '<br>')
-                    if is_financial:
-                        display_jlha = format_currency(clean_jlha_val)
-                        st.markdown(f"<div style='color: #555555; font-size: 0.88em; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha}</div>", unsafe_allow_html=True)
-                    else:
-                        st.markdown(f"<div style='color: #555555; font-size: 0.88em; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha_text}</div>", unsafe_allow_html=True)
-
-        if input_type == 'text':
-             user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
-             
-        elif input_type == 'textarea':
-             user_responses[col_name] = st.text_area(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
-             
-        elif input_type == 'file_upload':
-             if clean_current_val != "":
-                 st.markdown(f"<div style='font-size: 0.88em; margin-bottom: 5px;'>📎 <b>Current File:</b> <a href='{clean_current_val}' target='_blank'>View Uploaded Document</a><br><span style='color: #666; font-size: 0.9em;'>Upload a new file below to overwrite the current one.</span></div>", unsafe_allow_html=True)
-             user_responses[col_name] = st.file_uploader(label="hidden_label", label_visibility="collapsed", key=col_name)
-             
-        elif input_type == 'readonly':
-             display_text = clean_current_val
-             if display_text == "" and 'Previous_Col' in row and pd.notna(row['Previous_Col']):
-                 prev_col_name = str(row['Previous_Col']).strip()
-                 if prev_col_name in df_data.columns:
-                     display_text = format_cell_value(df_data.at[user_row_index, prev_col_name])
-             
-             if display_text == "":
-                 display_text = "None"
-                 
-             display_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', display_text)
-             display_text = re.sub(r'(?i)(<b>)?(\d+\s*BMPs completed:)(</b>)?', r'<u><b>\2</b></u>', display_text)
-             display_text = re.sub(r'(?i)(<b>)?(BMPs in progress:)(</b>)?', r'<u><b>\2</b></u>', display_text)
-             display_text = display_text.replace('\n', '<br>')
-             
-             # --- DYNAMIC EXPANDER TITLE WITH CUSTOM TITLE CASE LOGIC ---
-             # Removes anything in parentheses and strips trailing spaces and colons
-             clean_label = re.sub(r'\(.*?\)', '', str(label)).strip(' :')
-             
-             if clean_label:
-                 # Capitalizes only the first letter, preserves the rest of the word exactly to protect acronyms
-                 title_cased_words = [word[0].upper() + word[1:] for word in clean_label.split() if word]
-                 final_label = " ".join(title_cased_words)
-                 expander_title = f"📄 View / Hide Reference List of {final_label}"
-             else:
-                 expander_title = "📄 View / Hide Reference List"
-             
-             with st.expander(expander_title):
-                 st.markdown(f"<div style='font-size: 0.92em; color: #000000; margin-bottom: 5px; line-height: 1.5;'>{display_text}</div>", unsafe_allow_html=True)
-                 
-        elif input_type == 'dropdown':
-            options_str = str(row['Options']) if pd.notna(row['Options']) else ""
-            options = [opt.strip() for opt in options_str.split(',')]
-            try:
-                current_index = options.index(clean_current_val)
-            except ValueError:
-                current_index = 0
-            user_responses[col_name] = st.selectbox(label="hidden_label", label_visibility="collapsed", options=options, index=current_index, key=col_name)
-            
-        elif input_type == 'number':
-            try:
-                if clean_current_val == "":
-                    num_val = None
+            # If the group changes, we open a new Streamlit expander
+            if group_name != current_expander_name:
+                current_expander_name = group_name
+                if current_expander_name:
+                    current_container = st.expander(current_expander_name, expanded=True)
                 else:
-                    num_val = float(clean_current_val)
-                    if num_val.is_integer():
-                        num_val = int(num_val)
-            except ValueError:
-                num_val = None
-            user_responses[col_name] = st.number_input(label="hidden_label", label_visibility="collapsed", value=num_val, placeholder=" ", key=col_name)
+                    current_container = st.container()
+
+        # All UI drawing happens INSIDE the specific container for this row
+        with current_container:
+            col_name = row['Column Name']
+            label = row['Label']
+            input_type = row['Type']
+            is_financial = "Expenditure" in selected_tab or "Budget" in selected_tab or "💲" in selected_tab
             
-        elif input_type == 'checkbox':
-            is_checked = True if str(clean_current_val).lower() == 'true' else False
-            user_responses[col_name] = st.checkbox(label="Check if Yes", value=is_checked, key=col_name)
+            if input_type == 'subheader':
+                if not is_first_item:
+                    st.markdown("<hr style='margin-top: 15px; margin-bottom: 10px; border-color: #e0e6ed;'>", unsafe_allow_html=True) 
+                st.markdown(f"<div style='font-size: 1.1em; font-weight: bold; color: #1C83E1; margin-bottom: 8px;'>{label}</div>", unsafe_allow_html=True)
+                is_first_item = False
+                continue 
+                
+            if col_name in df_data.columns:
+                raw_current_val = df_data.at[user_row_index, col_name]
+            else:
+                raw_current_val = ""
+                
+            clean_current_val = format_cell_value(raw_current_val)
+
+            display_label = str(label).replace("**", "").strip()
+            label_html = ""
             
-        elif input_type == 'date':
-             user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
-        
-        if input_type not in ['subheader', 'readonly']:
-            hide_quick_save = False
+            if "•" in display_label:
+                parts = display_label.split("•")
+                label_html += f"<div style='font-size: 0.92em; font-weight: 600; color: #111111; margin-bottom: 4px;'>{parts[0].strip()}</div>"
+                for part in parts[1:]:
+                    if part.strip(): 
+                        label_html += f"<div style='font-size: 0.92em; font-weight: 600; color: #111111; margin-left: 15px; margin-bottom: 2px;'>• {part.strip()}</div>"
+            else:
+                for line in display_label.split('\n'):
+                    if line.strip(): 
+                        label_html += f"<div style='font-size: 0.92em; font-weight: 600; color: #111111; margin-bottom: 4px;'>{line.strip()}</div>"
             
-            if i < len(tab_questions) - 1:
-                next_type = tab_questions.iloc[i+1]['Type']
-                if next_type == 'file_upload':
-                    hide_quick_save = True
-                    
-            if not hide_quick_save:
-                qs = st.form_submit_button("💾 Save", key=f"qs_{col_name}", type="secondary")
-                quick_saves.append(qs)
+            st.markdown(label_html, unsafe_allow_html=True)
+
+            if 'Previous_Col' in row and pd.notna(row['Previous_Col']):
+                prev_col_name = str(row['Previous_Col']).strip()
+                if prev_col_name in df_data.columns:
+                    raw_prev_val = df_data.at[user_row_index, prev_col_name]
+                    clean_prev_val = format_cell_value(raw_prev_val)
+                    if clean_prev_val != "" and input_type not in ['readonly', 'file_upload']:
+                        has_line_breaks = '\n' in clean_prev_val
+                        separator = "<br>" if has_line_breaks else " "
+                        display_prev_text = clean_prev_val.replace('\n', '<br>')
+                        if is_financial:
+                            display_prev = format_currency(clean_prev_val)
+                            st.markdown(f"<div style='color: #555555; font-size: 0.88em; margin-bottom: 5px;'>💰 <b>Last Year's Total:</b>{separator}{display_prev}</div>", unsafe_allow_html=True)
+                        else:
+                            st.markdown(f"<div style='color: #555555; font-size: 0.88em; margin-bottom: 5px;'>🗓️ <b>Last year's response:</b>{separator}{display_prev_text}</div>", unsafe_allow_html=True)
+
+            if 'JLHA_Col' in df_config.columns and 'JLHA_Col' in row and pd.notna(row['JLHA_Col']):
+                jlha_col_name = str(row['JLHA_Col']).strip()
+                if jlha_col_name in df_data.columns:
+                    raw_jlha_val = df_data.at[user_row_index, jlha_col_name]
+                    clean_jlha_val = format_cell_value(raw_jlha_val)
+                    if clean_jlha_val != "" and input_type not in ['readonly', 'file_upload']:
+                        has_line_breaks = '\n' in clean_jlha_val
+                        separator = "<br>" if has_line_breaks else " "
+                        display_jlha_text = clean_jlha_val.replace('\n', '<br>')
+                        if is_financial:
+                            display_jlha = format_currency(clean_jlha_val)
+                            st.markdown(f"<div style='color: #555555; font-size: 0.88em; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha}</div>", unsafe_allow_html=True)
+                        else:
+                            st.markdown(f"<div style='color: #555555; font-size: 0.88em; margin-bottom: 5px;'>🐟 <b>JLHA Expenses:</b>{separator}{display_jlha_text}</div>", unsafe_allow_html=True)
+
+            if input_type == 'text':
+                 user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
+                 
+            elif input_type == 'textarea':
+                 user_responses[col_name] = st.text_area(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
+                 
+            elif input_type == 'file_upload':
+                 if clean_current_val != "":
+                     st.markdown(f"<div style='font-size: 0.88em; margin-bottom: 5px;'>📎 <b>Current File:</b> <a href='{clean_current_val}' target='_blank'>View Uploaded Document</a><br><span style='color: #666; font-size: 0.9em;'>Upload a new file below to overwrite the current one.</span></div>", unsafe_allow_html=True)
+                 user_responses[col_name] = st.file_uploader(label="hidden_label", label_visibility="collapsed", key=col_name)
+                 
+            elif input_type == 'readonly':
+                 display_text = clean_current_val
+                 if display_text == "" and 'Previous_Col' in row and pd.notna(row['Previous_Col']):
+                     prev_col_name = str(row['Previous_Col']).strip()
+                     if prev_col_name in df_data.columns:
+                         display_text = format_cell_value(df_data.at[user_row_index, prev_col_name])
+                 
+                 if display_text == "":
+                     display_text = "None"
+                     
+                 display_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', display_text)
+                 display_text = re.sub(r'(?i)(<b>)?(\d+\s*BMPs completed:)(</b>)?', r'<u><b>\2</b></u>', display_text)
+                 display_text = re.sub(r'(?i)(<b>)?(BMPs in progress:)(</b>)?', r'<u><b>\2</b></u>', display_text)
+                 display_text = display_text.replace('\n', '<br>')
+                 
+                 clean_label = re.sub(r'\(.*?\)', '', str(label)).strip(' :')
+                 
+                 if clean_label:
+                     title_cased_words = [word[0].upper() + word[1:] for word in clean_label.split() if word]
+                     final_label = " ".join(title_cased_words)
+                     expander_title = f"📄 View / Hide Reference List of {final_label}"
+                 else:
+                     expander_title = "📄 View / Hide Reference List"
+                 
+                 # --- PURE HTML EXPANDER LOGIC TO PREVENT CRASHES ---
+                 # We inject a raw HTML <details> block instead of st.expander to bypass the nesting error
+                 html_expander = f"""
+                 <details class="custom-expander">
+                    <summary>{expander_title}</summary>
+                    <div style='font-size: 0.92em; color: #000000; margin-top: 10px; line-height: 1.5;'>{display_text}</div>
+                 </details>
+                 """
+                 st.markdown(html_expander, unsafe_allow_html=True)
+                     
+            elif input_type == 'dropdown':
+                options_str = str(row['Options']) if pd.notna(row['Options']) else ""
+                options = [opt.strip() for opt in options_str.split(',')]
+                try:
+                    current_index = options.index(clean_current_val)
+                except ValueError:
+                    current_index = 0
+                user_responses[col_name] = st.selectbox(label="hidden_label", label_visibility="collapsed", options=options, index=current_index, key=col_name)
+                
+            elif input_type == 'number':
+                try:
+                    if clean_current_val == "":
+                        num_val = None
+                    else:
+                        num_val = float(clean_current_val)
+                        if num_val.is_integer():
+                            num_val = int(num_val)
+                except ValueError:
+                    num_val = None
+                user_responses[col_name] = st.number_input(label="hidden_label", label_visibility="collapsed", value=num_val, placeholder=" ", key=col_name)
+                
+            elif input_type == 'checkbox':
+                is_checked = True if str(clean_current_val).lower() == 'true' else False
+                user_responses[col_name] = st.checkbox(label="Check if Yes", value=is_checked, key=col_name)
+                
+            elif input_type == 'date':
+                 user_responses[col_name] = st.text_input(label="hidden_label", label_visibility="collapsed", value=clean_current_val, placeholder=" ", key=col_name)
             
-        is_first_item = False 
+            if input_type not in ['subheader', 'readonly']:
+                hide_quick_save = False
+                
+                if i < len(tab_questions) - 1:
+                    next_type = tab_questions.iloc[i+1]['Type']
+                    if next_type == 'file_upload':
+                        hide_quick_save = True
+                        
+                if not hide_quick_save:
+                    qs = st.form_submit_button("💾 Save", key=f"qs_{col_name}", type="secondary")
+                    quick_saves.append(qs)
+                
+            is_first_item = False 
     
+    # Catch-all Save Button at bottom
     if not quick_saves:
         fallback_save = st.form_submit_button("💾 Save Progress", type="primary")
         quick_saves.append(fallback_save)
