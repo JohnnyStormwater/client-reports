@@ -298,20 +298,26 @@ st.markdown("""
             color: #ffffff !important;
         }
         
-        /* --- NATIVE EXPANDER (For the big section blocks) --- */
+        /* --- NATIVE EXPANDER (Now highly clickable and styled) --- */
         [data-testid="stExpander"] {
             border: 1px solid #e0e6ed !important;
             border-radius: 8px !important;
+            border-left: 5px solid #1C83E1 !important; /* Thick blue accent line */
             margin-bottom: 20px !important;
             background-color: #ffffff !important;
             box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.02) !important;
+            transition: all 0.2s ease-in-out !important;
+        }
+        [data-testid="stExpander"]:hover {
+            background-color: #f4f8fd !important; /* Light blue tint on hover */
+            border-color: #cde0f5 !important;
         }
         [data-testid="stExpander"] summary {
             color: #1C83E1 !important;
             font-weight: 700 !important;
             font-size: 1.05em !important; 
-            padding-top: 10px !important;
-            padding-bottom: 10px !important;
+            padding-top: 12px !important;
+            padding-bottom: 12px !important;
         }
         
         /* --- HTML DETAILS (For the nested Read-Only blocks) --- */
@@ -359,6 +365,10 @@ st.markdown("""
             border: none !important;
             padding: 0px !important;
         }
+        [data-testid="stFileUploader"] small {
+            font-size: 0.8em !important;
+            margin-left: 10px !important; 
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -378,16 +388,15 @@ with st.form(key='dynamic_form'):
             group_val = row.get('Expander_Group')
             group_name = str(group_val).strip() if pd.notna(group_val) and str(group_val).strip() != "" else None
             
-            # If the group changes, we open a new Streamlit expander
             if group_name != current_expander_name:
                 current_expander_name = group_name
                 if current_expander_name:
-                    # UPDATED: Set expanded=False so they default to collapsed!
-                    current_container = st.expander(current_expander_name, expanded=False)
+                    # UPDATED: Added an explicit "Click to expand" instruction right into the title
+                    ui_title = f"👇 {current_expander_name} (Click to expand)"
+                    current_container = st.expander(ui_title, expanded=False)
                 else:
                     current_container = st.container()
 
-        # All UI drawing happens INSIDE the specific container for this row
         with current_container:
             col_name = row['Column Name']
             label = row['Label']
@@ -489,7 +498,6 @@ with st.form(key='dynamic_form'):
                  else:
                      expander_title = "📄 View / Hide Reference List"
                  
-                 # HTML <details> block instead of st.expander
                  html_expander = f"""
                  <details class="custom-expander">
                     <summary>{expander_title}</summary>
@@ -540,7 +548,6 @@ with st.form(key='dynamic_form'):
                 
             is_first_item = False 
     
-    # Catch-all Save Button at bottom
     if not quick_saves:
         fallback_save = st.form_submit_button("💾 Save Progress", type="primary")
         quick_saves.append(fallback_save)
