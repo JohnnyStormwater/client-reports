@@ -391,8 +391,8 @@ with st.form(key='dynamic_form'):
             if group_name != current_expander_name:
                 current_expander_name = group_name
                 if current_expander_name:
-                    # UPDATED: Replaced pointing emoji with a clean down arrow
-                    ui_title = f"▼ {current_expander_name} (Click to expand)"
+                    # Pointing finger is back!
+                    ui_title = f"👇 {current_expander_name} (Click to expand)"
                     current_container = st.expander(ui_title, expanded=False)
                 else:
                     current_container = st.container()
@@ -400,7 +400,6 @@ with st.form(key='dynamic_form'):
         with current_container:
             col_name = row['Column Name']
             raw_label = row['Label']
-            # --- FIX: Only grab the label if it's not empty, skipping pandas' NaN
             label = str(raw_label).strip() if pd.notna(raw_label) else ""
             
             input_type = row['Type']
@@ -410,7 +409,6 @@ with st.form(key='dynamic_form'):
                 if not is_first_item:
                     st.markdown("<hr style='margin-top: 15px; margin-bottom: 10px; border-color: #e0e6ed;'>", unsafe_allow_html=True) 
                 
-                # Only draw subheader if the label actually exists
                 if label:
                     st.markdown(f"<div style='font-size: 1.1em; font-weight: bold; color: #1C83E1; margin-bottom: 8px;'>{label}</div>", unsafe_allow_html=True)
                 
@@ -424,7 +422,6 @@ with st.form(key='dynamic_form'):
                 
             clean_current_val = format_cell_value(raw_current_val)
 
-            # --- FIX: Only draw the question text if a label exists ---
             if label:
                 display_label = label.replace("**", "").strip()
                 label_html = ""
@@ -498,17 +495,8 @@ with st.form(key='dynamic_form'):
                  display_text = re.sub(r'(?i)(<b>)?(BMPs in progress:)(</b>)?', r'<u><b>\2</b></u>', display_text)
                  display_text = display_text.replace('\n', '<br>')
                  
-                 # --- FIX: Gracefully fallback if label is blank ---
-                 if label:
-                     clean_label = re.sub(r'\(.*?\)', '', label).strip(' :')
-                     if clean_label:
-                         title_cased_words = [word[0].upper() + word[1:] for word in clean_label.split() if word]
-                         final_label = " ".join(title_cased_words)
-                         expander_title = f"📄 View / Hide Reference List of {final_label}"
-                     else:
-                         expander_title = "📄 View / Hide Reference List"
-                 else:
-                     expander_title = "📄 View / Hide Reference List"
+                 # --- STATIC EXPANDER TITLE WITH POINTING FINGER ---
+                 expander_title = "👇 View / Hide Reference List"
                  
                  html_expander = f"""
                  <details class="custom-expander">
