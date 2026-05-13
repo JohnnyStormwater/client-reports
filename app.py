@@ -298,18 +298,18 @@ st.markdown("""
             color: #ffffff !important;
         }
         
-        /* --- NATIVE EXPANDER (Now highly clickable and styled) --- */
+        /* --- NATIVE EXPANDER --- */
         [data-testid="stExpander"] {
             border: 1px solid #e0e6ed !important;
             border-radius: 8px !important;
-            border-left: 5px solid #1C83E1 !important; /* Thick blue accent line */
+            border-left: 5px solid #1C83E1 !important; 
             margin-bottom: 20px !important;
             background-color: #ffffff !important;
             box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.02) !important;
             transition: all 0.2s ease-in-out !important;
         }
         [data-testid="stExpander"]:hover {
-            background-color: #f4f8fd !important; /* Light blue tint on hover */
+            background-color: #f4f8fd !important; 
             border-color: #cde0f5 !important;
         }
         [data-testid="stExpander"] summary {
@@ -391,22 +391,29 @@ with st.form(key='dynamic_form'):
             if group_name != current_expander_name:
                 current_expander_name = group_name
                 if current_expander_name:
-                    # UPDATED: Added an explicit "Click to expand" instruction right into the title
-                    ui_title = f"👇 {current_expander_name} (Click to expand)"
+                    # UPDATED: Replaced pointing emoji with a clean down arrow
+                    ui_title = f"▼ {current_expander_name} (Click to expand)"
                     current_container = st.expander(ui_title, expanded=False)
                 else:
                     current_container = st.container()
 
         with current_container:
             col_name = row['Column Name']
-            label = row['Label']
+            raw_label = row['Label']
+            # --- FIX: Only grab the label if it's not empty, skipping pandas' NaN
+            label = str(raw_label).strip() if pd.notna(raw_label) else ""
+            
             input_type = row['Type']
             is_financial = "Expenditure" in selected_tab or "Budget" in selected_tab or "💲" in selected_tab
             
             if input_type == 'subheader':
                 if not is_first_item:
                     st.markdown("<hr style='margin-top: 15px; margin-bottom: 10px; border-color: #e0e6ed;'>", unsafe_allow_html=True) 
-                st.markdown(f"<div style='font-size: 1.1em; font-weight: bold; color: #1C83E1; margin-bottom: 8px;'>{label}</div>", unsafe_allow_html=True)
+                
+                # Only draw subheader if the label actually exists
+                if label:
+                    st.markdown(f"<div style='font-size: 1.1em; font-weight: bold; color: #1C83E1; margin-bottom: 8px;'>{label}</div>", unsafe_allow_html=True)
+                
                 is_first_item = False
                 continue 
                 
@@ -417,21 +424,23 @@ with st.form(key='dynamic_form'):
                 
             clean_current_val = format_cell_value(raw_current_val)
 
-            display_label = str(label).replace("**", "").strip()
-            label_html = ""
-            
-            if "•" in display_label:
-                parts = display_label.split("•")
-                label_html += f"<div style='font-size: 0.92em; font-weight: 600; color: #111111; margin-bottom: 4px;'>{parts[0].strip()}</div>"
-                for part in parts[1:]:
-                    if part.strip(): 
-                        label_html += f"<div style='font-size: 0.92em; font-weight: 600; color: #111111; margin-left: 15px; margin-bottom: 2px;'>• {part.strip()}</div>"
-            else:
-                for line in display_label.split('\n'):
-                    if line.strip(): 
-                        label_html += f"<div style='font-size: 0.92em; font-weight: 600; color: #111111; margin-bottom: 4px;'>{line.strip()}</div>"
-            
-            st.markdown(label_html, unsafe_allow_html=True)
+            # --- FIX: Only draw the question text if a label exists ---
+            if label:
+                display_label = label.replace("**", "").strip()
+                label_html = ""
+                
+                if "•" in display_label:
+                    parts = display_label.split("•")
+                    label_html += f"<div style='font-size: 0.92em; font-weight: 600; color: #111111; margin-bottom: 4px;'>{parts[0].strip()}</div>"
+                    for part in parts[1:]:
+                        if part.strip(): 
+                            label_html += f"<div style='font-size: 0.92em; font-weight: 600; color: #111111; margin-left: 15px; margin-bottom: 2px;'>• {part.strip()}</div>"
+                else:
+                    for line in display_label.split('\n'):
+                        if line.strip(): 
+                            label_html += f"<div style='font-size: 0.92em; font-weight: 600; color: #111111; margin-bottom: 4px;'>{line.strip()}</div>"
+                
+                st.markdown(label_html, unsafe_allow_html=True)
 
             if 'Previous_Col' in row and pd.notna(row['Previous_Col']):
                 prev_col_name = str(row['Previous_Col']).strip()
@@ -489,12 +498,15 @@ with st.form(key='dynamic_form'):
                  display_text = re.sub(r'(?i)(<b>)?(BMPs in progress:)(</b>)?', r'<u><b>\2</b></u>', display_text)
                  display_text = display_text.replace('\n', '<br>')
                  
-                 clean_label = re.sub(r'\(.*?\)', '', str(label)).strip(' :')
-                 
-                 if clean_label:
-                     title_cased_words = [word[0].upper() + word[1:] for word in clean_label.split() if word]
-                     final_label = " ".join(title_cased_words)
-                     expander_title = f"📄 View / Hide Reference List of {final_label}"
+                 # --- FIX: Gracefully fallback if label is blank ---
+                 if label:
+                     clean_label = re.sub(r'\(.*?\)', '', label).strip(' :')
+                     if clean_label:
+                         title_cased_words = [word[0].upper() + word[1:] for word in clean_label.split() if word]
+                         final_label = " ".join(title_cased_words)
+                         expander_title = f"📄 View / Hide Reference List of {final_label}"
+                     else:
+                         expander_title = "📄 View / Hide Reference List"
                  else:
                      expander_title = "📄 View / Hide Reference List"
                  
