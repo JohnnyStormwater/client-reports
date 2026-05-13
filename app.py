@@ -391,7 +391,7 @@ with st.form(key='dynamic_form'):
             if group_name != current_expander_name:
                 current_expander_name = group_name
                 if current_expander_name:
-                    # Pointing finger is back!
+                    # Keep pointing finger for main sections
                     ui_title = f"👇 {current_expander_name} (Click to expand)"
                     current_container = st.expander(ui_title, expanded=False)
                 else:
@@ -495,8 +495,8 @@ with st.form(key='dynamic_form'):
                  display_text = re.sub(r'(?i)(<b>)?(BMPs in progress:)(</b>)?', r'<u><b>\2</b></u>', display_text)
                  display_text = display_text.replace('\n', '<br>')
                  
-                 # --- STATIC EXPANDER TITLE WITH POINTING FINGER ---
-                 expander_title = "👇 View / Hide Reference List"
+                 # --- REMOVED EMOJI FROM READ ONLY LIST ---
+                 expander_title = "View / Hide Reference List"
                  
                  html_expander = f"""
                  <details class="custom-expander">
