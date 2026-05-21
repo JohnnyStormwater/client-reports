@@ -248,7 +248,23 @@ if 'Tab Description' in df_config.columns:
 st.markdown("""
     <style>
         .stApp { background-color: #f0f2f6 !important; }
-        [data-testid="stSidebar"] { background-color: #ffffff !important; border-right: 1px solid #e0e6ed !important; }
+        
+        /* --- NEW: Sidebar Hard Lock and Text Wrap Prevention --- */
+        [data-testid="stSidebar"] { 
+            background-color: #ffffff !important; 
+            border-right: 1px solid #e0e6ed !important; 
+            min-width: 340px !important;
+            max-width: 340px !important;
+        }
+        [data-testid="stSidebarResizer"] {
+            display: none !important;
+            width: 0px !important;
+        }
+        [data-testid="stSidebar"] div[role="radiogroup"] label p {
+            white-space: nowrap !important;
+        }
+        /* ----------------------------------------------------- */
+        
         [data-testid="stHeader"] { background-color: #ffffff !important; }
         
         [data-testid="stForm"] {
@@ -312,10 +328,9 @@ st.markdown("""
             background-color: #f4f8fd !important; 
             border-color: #cde0f5 !important;
         }
-        /* UPDATED: Target the embedded p tag to match the subheader font size and weight perfectly */
+        /* UPDATED: Unbolded this p tag so we can selectively bold parts in Python using Markdown */
         [data-testid="stExpander"] summary p {
             color: #1C83E1 !important;
-            font-weight: bold !important;
             font-size: 1.1em !important; 
             margin: 0 !important;
         }
@@ -396,9 +411,7 @@ with st.form(key='dynamic_form'):
                 current_expander_name = group_name
                 if current_expander_name:
                     
-                    # 1. Look ahead to calculate progress for this specific Expander Group
                     group_qs = tab_questions[tab_questions['Expander_Group'] == current_expander_name]
-                    # Filter out subheaders, read-only, and file uploads from the counter
                     actionable_group_qs = group_qs[~group_qs['Type'].isin(['subheader', 'readonly', 'file_upload'])]
                     
                     g_total = len(actionable_group_qs)
@@ -413,7 +426,6 @@ with st.form(key='dynamic_form'):
                                 
                     g_remaining = g_total - g_filled
                     
-                    # 2. Format the dynamic title
                     if g_total > 0:
                         if g_remaining == 0:
                             tracker_text = "(✅ Complete)"
@@ -422,7 +434,8 @@ with st.form(key='dynamic_form'):
                     else:
                         tracker_text = "(Click to expand)"
                         
-                    ui_title = f"👇 {current_expander_name} {tracker_text}"
+                    # UPDATED: Bold just the title via Markdown, leave the counter normal text!
+                    ui_title = f"👇 **{current_expander_name}** {tracker_text}"
                     current_container = st.expander(ui_title, expanded=False)
                 else:
                     current_container = st.container()
