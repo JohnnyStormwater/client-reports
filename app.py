@@ -312,10 +312,14 @@ st.markdown("""
             background-color: #f4f8fd !important; 
             border-color: #cde0f5 !important;
         }
-        [data-testid="stExpander"] summary {
+        /* UPDATED: Target the embedded p tag to match the subheader font size and weight perfectly */
+        [data-testid="stExpander"] summary p {
             color: #1C83E1 !important;
-            font-weight: 700 !important;
-            font-size: 1.05em !important; 
+            font-weight: bold !important;
+            font-size: 1.1em !important; 
+            margin: 0 !important;
+        }
+        [data-testid="stExpander"] summary {
             padding-top: 12px !important;
             padding-bottom: 12px !important;
         }
@@ -383,7 +387,7 @@ with st.form(key='dynamic_form'):
 
     for i, (index, row) in enumerate(tab_questions.iterrows()):
         
-        # --- DYNAMIC ACCORDION (EXPANDER) ROUTING ---
+        # --- DYNAMIC ACCORDION (EXPANDER) ROUTING WITH PROGRESS COUNTER ---
         if 'Expander_Group' in df_config.columns:
             group_val = row.get('Expander_Group')
             group_name = str(group_val).strip() if pd.notna(group_val) and str(group_val).strip() != "" else None
@@ -391,8 +395,34 @@ with st.form(key='dynamic_form'):
             if group_name != current_expander_name:
                 current_expander_name = group_name
                 if current_expander_name:
-                    # Keep pointing finger for main sections
-                    ui_title = f"👇 {current_expander_name} (Click to expand)"
+                    
+                    # 1. Look ahead to calculate progress for this specific Expander Group
+                    group_qs = tab_questions[tab_questions['Expander_Group'] == current_expander_name]
+                    # Filter out subheaders, read-only, and file uploads from the counter
+                    actionable_group_qs = group_qs[~group_qs['Type'].isin(['subheader', 'readonly', 'file_upload'])]
+                    
+                    g_total = len(actionable_group_qs)
+                    g_filled = 0
+                    
+                    for _, q_row in actionable_group_qs.iterrows():
+                        q_col = q_row['Column Name']
+                        if q_col in df_data.columns:
+                            q_val = format_cell_value(df_data.at[user_row_index, q_col])
+                            if q_val != "":
+                                g_filled += 1
+                                
+                    g_remaining = g_total - g_filled
+                    
+                    # 2. Format the dynamic title
+                    if g_total > 0:
+                        if g_remaining == 0:
+                            tracker_text = "(✅ Complete)"
+                        else:
+                            tracker_text = f"({g_remaining} Questions Remaining)"
+                    else:
+                        tracker_text = "(Click to expand)"
+                        
+                    ui_title = f"👇 {current_expander_name} {tracker_text}"
                     current_container = st.expander(ui_title, expanded=False)
                 else:
                     current_container = st.container()
@@ -495,7 +525,6 @@ with st.form(key='dynamic_form'):
                  display_text = re.sub(r'(?i)(<b>)?(BMPs in progress:)(</b>)?', r'<u><b>\2</b></u>', display_text)
                  display_text = display_text.replace('\n', '<br>')
                  
-                 # --- REMOVED EMOJI FROM READ ONLY LIST ---
                  expander_title = "View / Hide Reference List"
                  
                  html_expander = f"""
