@@ -426,9 +426,12 @@ with st.form(key='dynamic_form'):
                                 
                     g_remaining = g_total - g_filled
                     
+                    # UPDATED logic for grammar pluralization
                     if g_total > 0:
                         if g_remaining == 0:
                             tracker_text = "(✅ Complete)"
+                        elif g_remaining == 1:
+                            tracker_text = "(1 Question Remaining)"
                         else:
                             tracker_text = f"({g_remaining} Questions Remaining)"
                     else:
