@@ -249,7 +249,7 @@ st.markdown("""
     <style>
         .stApp { background-color: #f0f2f6 !important; }
         
-        /* --- NEW: Sidebar Hard Lock and Text Wrap Prevention --- */
+        /* --- Sidebar Hard Lock and Text Wrap Prevention --- */
         [data-testid="stSidebar"] { 
             background-color: #ffffff !important; 
             border-right: 1px solid #e0e6ed !important; 
@@ -274,6 +274,12 @@ st.markdown("""
             box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.04) !important;
             padding: 20px 25px !important; 
         }
+
+        /* --- NEW: Hide the "Press Enter to submit form" text --- */
+        div[data-testid="InputInstructions"] {
+            display: none !important;
+        }
+        /* ----------------------------------------------------- */
 
         div[data-baseweb="input"], div[data-baseweb="textarea"], div[data-baseweb="select"] {
             border: 1px solid #e0e6ed !important; border-radius: 6px !important; transition: all 0.2s ease-in-out;
@@ -328,7 +334,6 @@ st.markdown("""
             background-color: #f4f8fd !important; 
             border-color: #cde0f5 !important;
         }
-        /* UPDATED: Unbolded this p tag so we can selectively bold parts in Python using Markdown */
         [data-testid="stExpander"] summary p {
             color: #1C83E1 !important;
             font-size: 1.1em !important; 
@@ -426,7 +431,7 @@ with st.form(key='dynamic_form'):
                                 
                     g_remaining = g_total - g_filled
                     
-                    # UPDATED logic for grammar pluralization
+                    # Grammar pluralization logic
                     if g_total > 0:
                         if g_remaining == 0:
                             tracker_text = "(✅ Complete)"
@@ -437,7 +442,6 @@ with st.form(key='dynamic_form'):
                     else:
                         tracker_text = "(Click to expand)"
                         
-                    # UPDATED: Bold just the title via Markdown, leave the counter normal text!
                     ui_title = f"👇 **{current_expander_name}** {tracker_text}"
                     current_container = st.expander(ui_title, expanded=False)
                 else:
