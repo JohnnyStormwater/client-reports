@@ -377,16 +377,18 @@ st.markdown("""
         }
         [data-testid="stFileUploadDropzone"] > div {
             display: flex !important;
-            flex-direction: row !important;
+            flex-direction: column !important; /* Stack files vertically */
             justify-content: flex-start !important; 
-            align-items: center !important;
+            align-items: flex-start !important; /* Align left */
             width: 100% !important;
+            gap: 10px !important; /* Add spacing between files */
         }
         [data-testid="stFileUploader"] button {
             padding: 2px 14px !important;
             min-height: 26px !important;
             font-size: 0.85em !important;
             margin: 0 !important;
+            margin-top: 5px !important; /* Adds space above the add button */
         }
         [data-testid="stUploadedFile"] {
             background-color: transparent !important;
