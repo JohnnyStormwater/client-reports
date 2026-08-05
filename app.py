@@ -275,9 +275,13 @@ st.markdown("""
             padding: 20px 25px !important; 
         }
 
-        /* --- NEW: Hide the "Press Enter to submit form" text --- */
-        div[data-testid="InputInstructions"] {
+        /* --- NEW: Hide the "Press Enter to submit form" text (Aggressive) --- */
+        div[data-testid="InputInstructions"], 
+        div[data-testid="stInputInstructions"],
+        .st-ae .st-af .st-ag .st-ah .st-ai {
             display: none !important;
+            visibility: hidden !important;
+            height: 0px !important;
         }
         /* ----------------------------------------------------- */
 
@@ -527,8 +531,17 @@ with st.form(key='dynamic_form'):
                  
             elif input_type == 'file_upload':
                  if clean_current_val != "":
-                     st.markdown(f"<div style='font-size: 0.88em; margin-bottom: 5px;'>📎 <b>Current File:</b> <a href='{clean_current_val}' target='_blank'>View Uploaded Document</a><br><span style='color: #666; font-size: 0.9em;'>Upload a new file below to overwrite the current one.</span></div>", unsafe_allow_html=True)
-                 user_responses[col_name] = st.file_uploader(label="hidden_label", label_visibility="collapsed", key=col_name)
+                     st.markdown(f"<div style='font-size: 0.88em; margin-bottom: 5px;'>📎 <b>Previously Uploaded Documents:</b></div>", unsafe_allow_html=True)
+                     file_entries = clean_current_val.split(",")
+                     for entry in file_entries:
+                         if " | " in entry:
+                             file_name, file_url = entry.split(" | ", 1)
+                             st.markdown(f"<div style='font-size: 0.88em; margin-left: 20px;'>- <a href='{file_url.strip()}' target='_blank'>{file_name.strip()}</a></div>", unsafe_allow_html=True)
+                         elif entry.strip() != "":
+                             st.markdown(f"<div style='font-size: 0.88em; margin-left: 20px;'>- <a href='{entry.strip()}' target='_blank'>Legacy Document Link</a></div>", unsafe_allow_html=True)
+                     st.markdown("<div style='color: #666; font-size: 0.9em; margin-bottom: 5px; margin-top: 5px;'>Upload new files below to add to this list.</div>", unsafe_allow_html=True)
+                 
+                 user_responses[col_name] = st.file_uploader(label="hidden_label", label_visibility="collapsed", key=col_name, accept_multiple_files=True)
                  
             elif input_type == 'readonly':
                  display_text = clean_current_val
@@ -610,9 +623,10 @@ with st.form(key='dynamic_form'):
         
         questions_to_save = tab_questions[~tab_questions['Type'].isin(['subheader', 'readonly'])]
         
+        # Check if any files were ACTUALLY uploaded before spinning up Drive API
         for index, row in questions_to_save.iterrows():
             col = row['Column Name']
-            if row['Type'] == 'file_upload' and user_responses.get(col) is not None:
+            if row['Type'] == 'file_upload' and user_responses.get(col):
                 needs_drive = True
                 break
                 
@@ -630,15 +644,27 @@ with st.form(key='dynamic_form'):
             raw_val = user_responses.get(col)
             
             if q_type == 'file_upload':
-                if raw_val is not None:
-                    with st.spinner(f"Uploading file for '{row['Label']}'..."):
-                        try:
-                            file_id = upload_to_drive(raw_val, drive_service, client_folder_id)
-                            final_responses[col] = f"https://drive.google.com/file/d/{file_id}/view"
-                        except Exception as e:
-                            st.error(f"⛔ Google Drive Error on '{raw_val.name}': {str(e)}")
-                            final_responses[col] = df_data.at[user_row_index, col] 
-                            upload_failed = True
+                if raw_val: # raw_val is now a list of files
+                    file_records = []
+                    with st.spinner(f"Uploading file(s) for '{row['Label']}'..."):
+                        for file in raw_val:
+                            try:
+                                file_id = upload_to_drive(file, drive_service, client_folder_id)
+                                drive_link = f"https://drive.google.com/file/d/{file_id}/view"
+                                file_records.append(f"{file.name} | {drive_link}")
+                            except Exception as e:
+                                st.error(f"⛔ Google Drive Error on '{file.name}': {str(e)}")
+                                upload_failed = True
+                        
+                        if file_records:
+                            new_data_string = ", ".join(file_records)
+                            existing_data = format_cell_value(df_data.at[user_row_index, col])
+                            if existing_data != "":
+                                final_responses[col] = existing_data + ", " + new_data_string
+                            else:
+                                final_responses[col] = new_data_string
+                        else:
+                            final_responses[col] = df_data.at[user_row_index, col]
                 else:
                     final_responses[col] = df_data.at[user_row_index, col]
             else:
@@ -679,7 +705,7 @@ with st.form(key='dynamic_form'):
                 st.cache_data.clear()
             
             if upload_failed:
-                st.warning("⚠️ Your text data was safely saved to the spreadsheet, but the file upload failed. Please check the error messages above or verify your Google Drive permissions.")
+                st.warning("⚠️ Your text data was safely saved to the spreadsheet, but one or more file uploads failed. Please check the error messages above or verify your Google Drive permissions.")
             else:
                 st.success(f"✅ Saved data for {selected_tab}!")
                 st.rerun()
