@@ -368,27 +368,19 @@ st.markdown("""
             color: #1565C0;
         }
         
-        /* File Uploader Styles */
+        /* File Uploader Styles (Restored Native Stacking) */
         [data-testid="stFileUploadDropzone"] {
             background-color: transparent !important;
             border: none !important;
             padding: 0px !important;  
             min-height: auto !important;
         }
-        [data-testid="stFileUploadDropzone"] > div {
-            display: flex !important;
-            flex-direction: column !important; /* Stack files vertically */
-            justify-content: flex-start !important; 
-            align-items: flex-start !important; /* Align left */
-            width: 100% !important;
-            gap: 10px !important; /* Add spacing between files */
-        }
         [data-testid="stFileUploader"] button {
             padding: 2px 14px !important;
             min-height: 26px !important;
             font-size: 0.85em !important;
             margin: 0 !important;
-            margin-top: 5px !important; /* Adds space above the add button */
+            margin-top: 5px !important; 
         }
         [data-testid="stUploadedFile"] {
             background-color: transparent !important;
