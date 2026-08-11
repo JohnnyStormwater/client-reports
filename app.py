@@ -273,7 +273,7 @@ st.markdown("""
             padding: 20px 25px !important; 
         }
 
-        /* --- NEW: Hide the "Press Enter to submit form" text (Aggressive) --- */
+        /* --- Hide the "Press Enter to submit form" text (Aggressive) --- */
         div[data-testid="InputInstructions"], 
         div[data-testid="stInputInstructions"],
         .st-ae .st-af .st-ag .st-ah .st-ai {
@@ -523,7 +523,7 @@ with st.form(key='dynamic_form'):
                  
             elif input_type == 'file_upload':
                  if clean_current_val != "":
-                     # --- UPDATED: History Display for File Uploads ---
+                     # --- Appended History List Display ---
                      st.markdown(f"<div style='font-size: 0.9em; font-weight: bold; color: #333; margin-bottom: 8px;'>📎 Previously Uploaded File(s):</div>", unsafe_allow_html=True)
                      file_entries = clean_current_val.split(",")
                      for entry in file_entries:
@@ -535,6 +535,7 @@ with st.form(key='dynamic_form'):
                      
                      st.markdown("<div style='color: #666; font-size: 0.85em; margin-bottom: 12px; margin-top: 10px; font-style: italic;'>Your previous uploads are saved. Use the box below to add more files to this list.</div>", unsafe_allow_html=True)
                  
+                 # Enabled multi-file selection natively
                  user_responses[col_name] = st.file_uploader(label="hidden_label", label_visibility="collapsed", key=col_name, accept_multiple_files=True)
                  
             elif input_type == 'readonly':
@@ -638,7 +639,7 @@ with st.form(key='dynamic_form'):
             raw_val = user_responses.get(col)
             
             if q_type == 'file_upload':
-                if raw_val: # raw_val is now a list of files
+                if raw_val: # raw_val is now a list of files, allowing batch uploads
                     file_records = []
                     with st.spinner(f"Uploading file(s) for '{row['Label']}'..."):
                         for file in raw_val:
@@ -653,6 +654,7 @@ with st.form(key='dynamic_form'):
                         if file_records:
                             new_data_string = ", ".join(file_records)
                             existing_data = format_cell_value(df_data.at[user_row_index, col])
+                            # APPEND LOGIC: Combine old files with new files
                             if existing_data != "":
                                 final_responses[col] = existing_data + ", " + new_data_string
                             else:
@@ -696,6 +698,7 @@ with st.form(key='dynamic_form'):
         try:
             with st.spinner("Saving data to Google Sheets..."):
                 conn.update(worksheet=f"{user_county}_Data", data=df_to_save)
+                # INSTANT CACHE CLEAR: Wipes the connection's memory so the page immediately reads the new file list
                 st.cache_data.clear()
             
             if upload_failed:
