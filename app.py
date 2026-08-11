@@ -144,7 +144,6 @@ if user_row_index.empty:
 
 user_row_index = user_row_index[0] 
 
-
 # --- GLOBAL PROGRESS & DYNAMIC SIDEBAR LABELS ---
 tab_display_dict = {}
 
@@ -234,7 +233,6 @@ section_progress_html = f"""
 </div>
 """
 top_sidebar_placeholder.markdown(section_progress_html, unsafe_allow_html=True)
-
 
 # 7. DYNAMIC FORM GENERATOR
 st.markdown(f"<h1 style='margin-top: 0px; padding-top: 0px;'>{selected_tab}</h1>", unsafe_allow_html=True)
@@ -525,15 +523,17 @@ with st.form(key='dynamic_form'):
                  
             elif input_type == 'file_upload':
                  if clean_current_val != "":
-                     st.markdown(f"<div style='font-size: 0.88em; margin-bottom: 5px;'>📎 <b>Previously Uploaded Documents:</b></div>", unsafe_allow_html=True)
+                     # --- UPDATED: History Display for File Uploads ---
+                     st.markdown(f"<div style='font-size: 0.9em; font-weight: bold; color: #333; margin-bottom: 8px;'>📎 Previously Uploaded File(s):</div>", unsafe_allow_html=True)
                      file_entries = clean_current_val.split(",")
                      for entry in file_entries:
                          if " | " in entry:
                              file_name, file_url = entry.split(" | ", 1)
-                             st.markdown(f"<div style='font-size: 0.88em; margin-left: 20px;'>- <a href='{file_url.strip()}' target='_blank'>{file_name.strip()}</a></div>", unsafe_allow_html=True)
+                             st.markdown(f"<div style='font-size: 0.88em; margin-left: 15px; margin-bottom: 4px;'>• <a href='{file_url.strip()}' target='_blank' style='text-decoration: none; color: #1C83E1;'>{file_name.strip()}</a></div>", unsafe_allow_html=True)
                          elif entry.strip() != "":
-                             st.markdown(f"<div style='font-size: 0.88em; margin-left: 20px;'>- <a href='{entry.strip()}' target='_blank'>Legacy Document Link</a></div>", unsafe_allow_html=True)
-                     st.markdown("<div style='color: #666; font-size: 0.9em; margin-bottom: 5px; margin-top: 5px;'>Upload new files below to add to this list.</div>", unsafe_allow_html=True)
+                             st.markdown(f"<div style='font-size: 0.88em; margin-left: 15px; margin-bottom: 4px;'>• <a href='{entry.strip()}' target='_blank' style='text-decoration: none; color: #1C83E1;'>View Document Link</a></div>", unsafe_allow_html=True)
+                     
+                     st.markdown("<div style='color: #666; font-size: 0.85em; margin-bottom: 12px; margin-top: 10px; font-style: italic;'>Your previous uploads are saved. Use the box below to add more files to this list.</div>", unsafe_allow_html=True)
                  
                  user_responses[col_name] = st.file_uploader(label="hidden_label", label_visibility="collapsed", key=col_name, accept_multiple_files=True)
                  
